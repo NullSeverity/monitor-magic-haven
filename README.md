@@ -69,7 +69,7 @@ Aplikasi monitoring uptime ini adalah solusi sederhana untuk memantau status dan
 2. **Clone Repository**
 
    ```bash
-   git clone https://github.com/username/uptime-monitor.git
+   git clone https://github.com/NullSeverity/uptime-monitor.git
    cd uptime-monitor
    ```
 
@@ -166,7 +166,7 @@ Aplikasi monitoring uptime ini adalah solusi sederhana untuk memantau status dan
 2. **Clone dan Setup Aplikasi**
 
    ```bash
-   git clone https://github.com/username/uptime-monitor.git
+   git clone https://github.com/NullSeverity/uptime-monitor.git
    cd uptime-monitor
    
    # Instal dependensi

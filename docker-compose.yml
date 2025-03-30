@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  app:
+    container_name: uptime-monitor
+    #image: NullSeverity/monitor-magic-haven:latest
+    # Atau gunakan build jika belum membuat image
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+    volumes:
+      - ./data:/app/data
+
+  mongo:
+    container_name: uptime-mongo
+    image: mongo:4.4
+    restart: unless-stopped
+    volumes:
+      - ./data/db:/data/db

@@ -30,8 +30,8 @@ export default function Dashboard() {
     if (savedMonitors) {
       setMonitors(JSON.parse(savedMonitors));
     } else {
-      // Mock data for demonstration
-      const mockMonitors = [
+      // Mock data for demonstration - ensure types match the Monitor interface exactly
+      const mockMonitors: Monitor[] = [
         { id: 1, name: "Website", type: "HTTP", url: "https://example.com", status: "up", responseTime: 120, uptime: 99.9, interval: 60, group: "Production" },
         { id: 2, name: "API Service", type: "HTTP", url: "https://api.example.com/status", status: "up", responseTime: 220, uptime: 99.7, interval: 30, group: "Production" },
         { id: 3, name: "Database", type: "TCP", host: "db.example.com", port: 5432, status: "up", responseTime: 45, uptime: 99.8, interval: 60, group: "Database" },

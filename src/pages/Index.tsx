@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +5,7 @@ import { MoonIcon, SunIcon, PlusCircle, Activity, Server, Wifi, ArrowRight } fro
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, Link } from "react-router-dom";
+import { Monitor } from "@/types/monitor";
 
 export default function Index() {
   const [darkMode, setDarkMode] = useState(false);
@@ -26,12 +26,12 @@ export default function Index() {
   }, [navigate]);
 
   // Mock data for demonstration
-  const monitors = [
-    { id: 1, name: "Website", type: "HTTP", url: "https://example.com", status: "up", responseTime: 120, uptime: 99.9 },
-    { id: 2, name: "API Service", type: "HTTP", url: "https://api.example.com/status", status: "up", responseTime: 220, uptime: 99.7 },
-    { id: 3, name: "Database", type: "TCP", host: "db.example.com", port: 5432, status: "up", responseTime: 45, uptime: 99.8 },
-    { id: 4, name: "Mail Server", type: "TCP", host: "mail.example.com", port: 25, status: "down", responseTime: 0, uptime: 98.2 },
-    { id: 5, name: "Router", type: "PING", host: "192.168.1.1", status: "up", responseTime: 5, uptime: 100 }
+  const monitors: Monitor[] = [
+    { id: 1, name: "Website", type: "HTTP", url: "https://example.com", status: "up", responseTime: 120, uptime: 99.9, interval: 60 },
+    { id: 2, name: "API Service", type: "HTTP", url: "https://api.example.com/status", status: "up", responseTime: 220, uptime: 99.7, interval: 30 },
+    { id: 3, name: "Database", type: "TCP", host: "db.example.com", port: 5432, status: "up", responseTime: 45, uptime: 99.8, interval: 60 },
+    { id: 4, name: "Mail Server", type: "TCP", host: "mail.example.com", port: 25, status: "down", responseTime: 0, uptime: 98.2, interval: 120 },
+    { id: 5, name: "Router", type: "PING", host: "192.168.1.1", status: "up", responseTime: 5, uptime: 100, interval: 60 }
   ];
 
   const toggleDarkMode = () => {

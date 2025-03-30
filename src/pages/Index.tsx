@@ -1,16 +1,29 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MoonIcon, SunIcon, PlusCircle, Activity, Server, Wifi } from "lucide-react";
+import { MoonIcon, SunIcon, PlusCircle, Activity, Server, Wifi, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Index() {
   const [darkMode, setDarkMode] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+
+    // Check if dark mode is enabled
+    if (document.documentElement.classList.contains('dark')) {
+      setDarkMode(true);
+    }
+  }, [navigate]);
 
   // Mock data for demonstration
   const monitors = [
@@ -30,13 +43,6 @@ export default function Index() {
     setDarkMode(!darkMode);
   };
 
-  const handleAddMonitor = () => {
-    toast({
-      title: "Feature Coming Soon",
-      description: "The add monitor feature is under development.",
-    });
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="flex justify-between items-center mb-8">
@@ -51,132 +57,118 @@ export default function Index() {
           <Button variant="outline" size="icon" onClick={toggleDarkMode}>
             {darkMode ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
           </Button>
-          <Button onClick={handleAddMonitor}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Add Monitor
+          <Button onClick={() => navigate('/login')}>
+            Sign In
           </Button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Monitors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{monitors.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Monitors Up</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">{monitors.filter(m => m.status === 'up').length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Monitors Down</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-500">{monitors.filter(m => m.status === 'down').length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Average Uptime</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(monitors.reduce((sum, monitor) => sum + monitor.uptime, 0) / monitors.length).toFixed(2)}%
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center my-16">
+        <div className="space-y-6">
+          <h2 className="text-4xl font-bold leading-tight">Monitor Your Services with Real-Time Alerts</h2>
+          <p className="text-xl text-muted-foreground">
+            Keep track of your websites, APIs, and servers' uptime with comprehensive monitoring and instant notifications.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button size="lg" onClick={() => navigate('/login')}>
+              Get Started <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+            <Button size="lg" variant="outline">
+              Learn More
+            </Button>
+          </div>
+        </div>
+        <div className="rounded-xl overflow-hidden shadow-xl border bg-card">
+          <div className="p-6">
+            <h3 className="text-2xl font-semibold mb-4">Sample Dashboard</h3>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-2xl font-bold">{monitors.length}</div>
+                  <p className="text-sm text-muted-foreground">Monitors</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-2xl font-bold text-green-500">{monitors.filter(m => m.status === 'up').length}</div>
+                  <p className="text-sm text-muted-foreground">Online</p>
+                </CardContent>
+              </Card>
             </div>
+
+            <div className="space-y-3">
+              {monitors.slice(0, 3).map((monitor) => (
+                <div key={monitor.id} className="flex items-center justify-between p-3 bg-accent/50 rounded-md">
+                  <div className="flex items-center">
+                    {monitor.type === 'HTTP' && <Activity className="h-4 w-4 mr-2" />}
+                    {monitor.type === 'TCP' && <Server className="h-4 w-4 mr-2" />}
+                    {monitor.type === 'PING' && <Wifi className="h-4 w-4 mr-2" />}
+                    <span>{monitor.name}</span>
+                  </div>
+                  <StatusBadge status={monitor.status} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 my-16">
+        <Card>
+          <CardHeader>
+            <CardTitle>HTTP Monitoring</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Monitor websites and APIs with HTTP checks. Set custom headers, authentication, and expected responses.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>TCP Monitoring</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Check if ports are open on your servers. Perfect for monitoring databases, mail servers, and custom applications.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>ICMP Ping</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Simple ping monitoring to verify hosts are online. Measure latency and packet loss for network devices.</p>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="all" className="mb-8">
-        <TabsList>
-          <TabsTrigger value="all">All Monitors</TabsTrigger>
-          <TabsTrigger value="http">HTTP</TabsTrigger>
-          <TabsTrigger value="tcp">TCP</TabsTrigger>
-          <TabsTrigger value="ping">PING</TabsTrigger>
-        </TabsList>
-        <TabsContent value="all" className="mt-4">
-          <div className="grid grid-cols-1 gap-4">
-            {monitors.map(monitor => (
-              <MonitorCard key={monitor.id} monitor={monitor} />
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="http" className="mt-4">
-          <div className="grid grid-cols-1 gap-4">
-            {monitors.filter(m => m.type === 'HTTP').map(monitor => (
-              <MonitorCard key={monitor.id} monitor={monitor} />
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="tcp" className="mt-4">
-          <div className="grid grid-cols-1 gap-4">
-            {monitors.filter(m => m.type === 'TCP').map(monitor => (
-              <MonitorCard key={monitor.id} monitor={monitor} />
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="ping" className="mt-4">
-          <div className="grid grid-cols-1 gap-4">
-            {monitors.filter(m => m.type === 'PING').map(monitor => (
-              <MonitorCard key={monitor.id} monitor={monitor} />
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+      <div className="my-16">
+        <h2 className="text-3xl font-bold text-center mb-8">Features</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <FeatureCard title="Real-time Alerts" description="Get instant notifications when services go down or recover" />
+          <FeatureCard title="Multiple Channels" description="Send alerts via Email, Telegram, and Discord" />
+          <FeatureCard title="Dashboard" description="Visualize uptime and performance in a clean interface" />
+          <FeatureCard title="Customizable" description="Set check intervals, retries, and alert thresholds" />
+        </div>
+      </div>
+
+      <footer className="text-center my-12">
+        <p className="text-muted-foreground">© 2023 Uptime Monitor. Demo credentials: admin@example.com / password</p>
+      </footer>
     </div>
   );
 }
 
-const MonitorCard = ({ monitor }) => {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-xl">{monitor.name}</CardTitle>
-            <CardDescription>
-              {monitor.type === 'HTTP' && monitor.url}
-              {monitor.type === 'TCP' && `${monitor.host}:${monitor.port}`}
-              {monitor.type === 'PING' && monitor.host}
-            </CardDescription>
-          </div>
-          <StatusBadge status={monitor.status} />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Response Time</p>
-            <p className="font-medium">{monitor.status === 'up' ? `${monitor.responseTime} ms` : 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Uptime</p>
-            <p className="font-medium">{monitor.uptime}%</p>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="pt-2">
-        <div className="flex items-center text-xs text-muted-foreground">
-          {monitor.type === 'HTTP' && <Activity className="h-3 w-3 mr-1" />}
-          {monitor.type === 'TCP' && <Server className="h-3 w-3 mr-1" />}
-          {monitor.type === 'PING' && <Wifi className="h-3 w-3 mr-1" />}
-          {monitor.type}
-        </div>
-      </CardFooter>
-    </Card>
-  );
-};
-
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status }: { status: string }) => {
   if (status === 'up') {
     return <Badge className="bg-green-500">Up</Badge>;
   }
   return <Badge variant="destructive">Down</Badge>;
+};
+
+const FeatureCard = ({ title, description }: { title: string; description: string }) => {
+  return (
+    <div className="bg-accent/50 rounded-lg p-6 border">
+      <h3 className="text-lg font-medium mb-2">{title}</h3>
+      <p className="text-muted-foreground">{description}</p>
+    </div>
+  );
 };

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Server, Wifi, Clock, Bell, ChevronDown, RefreshCw, ExternalLink, Pulse, Gauge } from "lucide-react";
+import { Activity, Server, Wifi, Clock, Bell, ChevronDown, RefreshCw, ExternalLink, Heart, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Monitor } from "@/types/monitor";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -74,7 +74,7 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
     
     return (
       <div className="flex items-center">
-        <Pulse className={`h-3 w-3 mr-1 ${color}`} />
+        <Heart className={`h-3 w-3 mr-1 ${color}`} />
         <span className={color}>{monitor.responseTime} ms</span>
       </div>
     );

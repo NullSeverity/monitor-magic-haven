@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Save, Trash2, Plus, X, RefreshCw } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Plus, X, RefreshCw, AlertTriangle, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Monitor } from "@/types/monitor";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
+import { Progress } from "@/components/ui/progress";
 
 export default function MonitorForm() {
   const [monitor, setMonitor] = useState<Partial<Monitor>>({
@@ -46,6 +47,13 @@ export default function MonitorForm() {
   const [triggerUrl, setTriggerUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [checkProgress, setCheckProgress] = useState(0);
+  const [checkResult, setCheckResult] = useState<{ 
+    status: 'up' | 'down' | 'pending'; 
+    responseTime?: number; 
+    stringCheckResult?: boolean;
+    message?: string;
+  } | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { id } = useParams();
@@ -161,23 +169,64 @@ export default function MonitorForm() {
   const checkMonitor = async () => {
     if (!validateMonitor()) return;
     
+    setCheckResult(null);
     setChecking(true);
+    setCheckProgress(0);
+    
+    const checkSteps = [10, 20, 35, 50, 65, 80, 90, 100];
+    let stepIndex = 0;
+    
+    const progressInterval = setInterval(() => {
+      if (stepIndex < checkSteps.length) {
+        setCheckProgress(checkSteps[stepIndex]);
+        stepIndex++;
+      } else {
+        clearInterval(progressInterval);
+      }
+    }, 250);
     
     setTimeout(() => {
-      const isUp = Math.random() > 0.3;
+      clearInterval(progressInterval);
+      setCheckProgress(100);
+      
+      const isUp = Math.random() > 0.2;
       const responseTime = isUp ? Math.floor(Math.random() * 500) + 50 : 0;
       
       let stringCheckResult;
+      let message = '';
+      
       if (monitor.stringCheckEnabled && isUp) {
-        stringCheckResult = Math.random() > 0.3; // 70% chance of successful string check
+        if (monitor.expectedString && monitor.expectedString.trim()) {
+          stringCheckResult = Math.random() > 0.2;
+          
+          if (!stringCheckResult) {
+            message = `Expected string "${monitor.expectedString}" not found in response`;
+          } else {
+            message = `Expected string "${monitor.expectedString}" found at position 143`;
+          }
+        } else {
+          stringCheckResult = true;
+          message = 'Warning: String check enabled but no string specified';
+        }
       }
+      
+      const result = {
+        status: isUp ? 'up' as const : 'down' as const,
+        responseTime,
+        stringCheckResult,
+        message: isUp ? 
+          (stringCheckResult === false ? message : `Response received in ${responseTime}ms`) : 
+          'Connection failed'
+      };
+      
+      setCheckResult(result);
       
       setMonitor(prev => ({
         ...prev,
-        status: isUp ? 'up' : 'down',
+        status: result.status,
         responseTime,
         lastChecked: new Date().toISOString(),
-        stringCheckResult: monitor.stringCheckEnabled ? stringCheckResult : undefined
+        stringCheckResult
       }));
       
       let title, description, variant;
@@ -188,7 +237,7 @@ export default function MonitorForm() {
         variant = "destructive";
       } else if (monitor.stringCheckEnabled && !stringCheckResult) {
         title = "String Check Failed";
-        description = `Connection OK but expected string not found (${responseTime}ms)`;
+        description = `Connection OK but ${message} (${responseTime}ms)`;
         variant = "destructive";
       } else {
         title = "Monitor is Up";
@@ -282,12 +331,12 @@ export default function MonitorForm() {
           const monitorToCheck = updatedMonitors.find((m: Monitor) => m.id === newId);
           
           if (monitorToCheck) {
-            const isUp = Math.random() > 0.3;
+            const isUp = Math.random() > 0.2;
             const responseTime = isUp ? Math.floor(Math.random() * 500) + 50 : 0;
             
             let stringCheckResult;
-            if (monitorToCheck.stringCheckEnabled && isUp) {
-              stringCheckResult = Math.random() > 0.3; // 70% chance of successful string check
+            if (monitorToCheck.stringCheckEnabled && isUp && monitorToCheck.expectedString) {
+              stringCheckResult = Math.random() > 0.2;
             }
             
             const checkedMonitors = updatedMonitors.map((m: Monitor) => 
@@ -344,12 +393,12 @@ export default function MonitorForm() {
           const monitorToCheck = updatedMonitorsAfterSave.find((m: Monitor) => m.id === parseInt(id || '0'));
           
           if (monitorToCheck) {
-            const isUp = Math.random() > 0.3;
+            const isUp = Math.random() > 0.2;
             const responseTime = isUp ? Math.floor(Math.random() * 500) + 50 : 0;
             
             let stringCheckResult;
-            if (monitorToCheck.stringCheckEnabled && isUp) {
-              stringCheckResult = Math.random() > 0.3; // 70% chance of successful string check
+            if (monitorToCheck.stringCheckEnabled && isUp && monitorToCheck.expectedString) {
+              stringCheckResult = Math.random() > 0.2;
             }
             
             const checkedMonitors = updatedMonitorsAfterSave.map((m: Monitor) => 
@@ -583,17 +632,60 @@ export default function MonitorForm() {
                   </div>
                 </div>
                 
-                <div className="mt-2 flex justify-end">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="flex items-center"
-                    onClick={checkMonitor}
-                    disabled={checking}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
-                    {checking ? 'Checking...' : 'Test Connection'}
-                  </Button>
+                <div className="mt-2">
+                  {checking && (
+                    <div className="mb-3">
+                      <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+                        <span>Testing connection...</span>
+                        <span>{checkProgress}%</span>
+                      </div>
+                      <Progress value={checkProgress} className="h-1 animate-pulse" />
+                    </div>
+                  )}
+                  
+                  {checkResult && !checking && (
+                    <div className={`rounded-md p-3 mb-3 ${
+                      checkResult.status === 'down' || checkResult.stringCheckResult === false 
+                        ? 'bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800' 
+                        : 'bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-800'
+                    }`}>
+                      <div className="flex items-center">
+                        {checkResult.status === 'down' || checkResult.stringCheckResult === false ? (
+                          <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
+                        ) : (
+                          <Check className="h-5 w-5 text-green-500 mr-2" />
+                        )}
+                        <div>
+                          <h3 className="font-medium">
+                            {checkResult.status === 'down' ? 'Connection Failed' : 
+                             checkResult.stringCheckResult === false ? 'String Check Failed' : 
+                             'Connection Successful'}
+                          </h3>
+                          <p className="text-sm">
+                            {checkResult.message}
+                            {checkResult.responseTime !== undefined && checkResult.status === 'up' && (
+                              <span className="font-medium ml-1">
+                                {checkResult.responseTime}ms
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="flex items-center"
+                      onClick={checkMonitor}
+                      disabled={checking}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
+                      {checking ? 'Checking...' : 'Test Connection'}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </TabsContent>

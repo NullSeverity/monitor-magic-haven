@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Server, Wifi, Clock, Bell, ChevronDown, RefreshCw, ExternalLink, Heart, Gauge } from "lucide-react";
+import { Activity, Server, Wifi, Clock, Bell, ChevronDown, RefreshCw, ExternalLink, Heart, Gauge, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Monitor } from "@/types/monitor";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -20,6 +21,7 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
   const [statusHistory, setStatusHistory] = useState<Array<'up' | 'down' | 'pending'>>([]);
   const [timeSinceLastCheck, setTimeSinceLastCheck] = useState<string>("");
   const [nextCheckProgress, setNextCheckProgress] = useState(0);
+  const [isLive, setIsLive] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -62,6 +64,13 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
       const intervalSecs = monitor.interval;
       const progress = Math.min(100, (diffSecs / intervalSecs) * 100);
       setNextCheckProgress(progress);
+      
+      // Check if we're overdue for a check (real-time indicator)
+      if (progress >= 100 && isLive) {
+        setIsLive(false);
+        onCheck();
+        setTimeout(() => setIsLive(true), 2000);
+      }
     };
     
     updateTimers();
@@ -69,7 +78,7 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
     const timer = setInterval(updateTimers, 1000);
     
     return () => clearInterval(timer);
-  }, [monitor.lastChecked, monitor.interval]);
+  }, [monitor.lastChecked, monitor.interval, onCheck, isLive]);
 
   const updateStatusHistory = (newStatus: 'up' | 'down' | 'pending') => {
     setStatusHistory(prevHistory => {
@@ -108,7 +117,15 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
   };
 
   const handleManualCheck = async () => {
+    if (isChecking) return;
+    
     setIsChecking(true);
+    setStatusHistory(prevHistory => {
+      const updatedHistory = [...prevHistory.slice(1), 'pending'];
+      localStorage.setItem(`status_history_${monitor.id}`, JSON.stringify(updatedHistory));
+      return updatedHistory;
+    });
+    
     onCheck();
     
     setTimeout(() => {
@@ -133,8 +150,13 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
     return monitor.status;
   };
 
+  const getDisplayResponseTime = () => {
+    if (monitor.status !== 'up') return 'N/A';
+    return `${monitor.responseTime} ms`;
+  };
+
   return (
-    <Card className="hover:shadow-md transition-shadow overflow-hidden">
+    <Card className={`hover:shadow-md transition-shadow overflow-hidden ${isChecking ? 'border-yellow-500 dark:border-yellow-600' : getEffectiveStatus() === 'down' ? 'border-red-500 dark:border-red-600' : ''}`}>
       <CardHeader className="py-3 px-4 relative">
         <div className="flex justify-between items-start">
           <div>
@@ -156,6 +178,7 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
             <StatusBadge 
               status={getEffectiveStatus()} 
               stringCheckFailed={hasStringCheckFailed()} 
+              isChecking={isChecking}
             />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -180,17 +203,22 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
       </CardHeader>
 
       <div className="px-4 py-1 flex space-x-0.5">
-        {statusHistory.map((status, index) => (
-          <div 
-            key={index} 
-            className={`h-2 flex-1 rounded-sm ${
-              status === 'up' && !hasStringCheckFailed() ? 'bg-green-500' : 
-              status === 'down' || hasStringCheckFailed() ? 'bg-red-500' : 
-              'bg-yellow-500'
-            }`}
-            title={`Status: ${status}${hasStringCheckFailed() ? ' (String check failed)' : ''}`}
-          />
-        ))}
+        {statusHistory.map((status, index) => {
+          const effectiveStatus = index === statusHistory.length - 1 && isChecking ? 'pending' : status;
+          const stringCheckFailedForThis = index === statusHistory.length - 1 && hasStringCheckFailed();
+          
+          return (
+            <div 
+              key={index} 
+              className={`h-2 flex-1 rounded-sm ${
+                effectiveStatus === 'up' && !stringCheckFailedForThis ? 'bg-green-500' : 
+                effectiveStatus === 'down' || stringCheckFailedForThis ? 'bg-red-500' : 
+                'bg-yellow-500 animate-pulse'
+              }`}
+              title={`Status: ${effectiveStatus}${stringCheckFailedForThis ? ' (String check failed)' : ''}`}
+            />
+          );
+        })}
       </div>
 
       <div className="px-4 pt-2">
@@ -198,7 +226,7 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
           <span>Last check: {timeSinceLastCheck}</span>
           <span>Next check: {Math.max(0, monitor.interval - Math.floor((nextCheckProgress / 100) * monitor.interval))}s</span>
         </div>
-        <Progress value={nextCheckProgress} className="h-1" />
+        <Progress value={nextCheckProgress} className={`h-1 ${nextCheckProgress > 90 ? 'animate-pulse' : ''}`} />
       </div>
 
       <CardContent className="py-2 px-4">
@@ -206,7 +234,7 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
           <div className="flex items-center space-x-3">
             {getResponseTimeIndicator() || (
               <span className="text-muted-foreground">
-                {monitor.status === 'up' ? `${monitor.responseTime} ms` : 'N/A'}
+                {getDisplayResponseTime()}
               </span>
             )}
             <span className="text-muted-foreground flex items-center">
@@ -222,7 +250,7 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-7 px-2 mr-1"
+              className={`h-7 px-2 mr-1 ${isChecking ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}`}
               onClick={handleManualCheck} 
               disabled={isChecking}
             >
@@ -247,7 +275,7 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
             )}
             {hasStringCheckFailed() && (
               <Badge variant="destructive" className="text-xs ml-1">
-                String Check Failed
+                <AlertTriangle className="h-2 w-2 mr-1" /> String Check Failed
               </Badge>
             )}
           </div>
@@ -261,9 +289,24 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
   );
 };
 
-const StatusBadge = ({ status, stringCheckFailed }: { status: 'up' | 'down' | 'pending', stringCheckFailed?: boolean }) => {
+const StatusBadge = ({ 
+  status, 
+  stringCheckFailed, 
+  isChecking 
+}: { 
+  status: 'up' | 'down' | 'pending', 
+  stringCheckFailed?: boolean,
+  isChecking?: boolean
+}) => {
+  if (isChecking) {
+    return <Badge variant="outline" className="text-yellow-500 border-yellow-500 animate-pulse">Checking</Badge>;
+  }
+  
   if (stringCheckFailed) {
-    return <Badge variant="destructive">String Check Failed</Badge>;
+    return <Badge variant="destructive" className="flex items-center">
+      <AlertTriangle className="h-3 w-3 mr-1" /> 
+      String Check Failed
+    </Badge>;
   }
   
   if (status === 'up') {

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +17,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const intervalRefs = useRef<Record<number, NodeJS.Timeout>>({});
+  const checkingMonitors = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     // Check authentication
@@ -41,11 +41,11 @@ export default function Dashboard() {
     } else {
       // Mock data for demonstration - ensure types match the Monitor interface exactly
       const mockMonitors: Monitor[] = [
-        { id: 1, name: "Website", type: "HTTP", url: "https://example.com", status: "up", responseTime: 120, uptime: 99.9, interval: 60, group: "Production" },
-        { id: 2, name: "API Service", type: "HTTP", url: "https://api.example.com/status", status: "up", responseTime: 220, uptime: 99.7, interval: 30, group: "Production" },
-        { id: 3, name: "Database", type: "TCP", host: "db.example.com", port: 5432, status: "up", responseTime: 45, uptime: 99.8, interval: 60, group: "Database" },
-        { id: 4, name: "Mail Server", type: "TCP", host: "mail.example.com", port: 25, status: "down", responseTime: 0, uptime: 98.2, interval: 120, group: "Mail" },
-        { id: 5, name: "Router", type: "PING", host: "192.168.1.1", status: "up", responseTime: 5, uptime: 100, interval: 60, group: "Network" }
+        { id: 1, name: "Website", type: "HTTP", url: "https://example.com", status: "up", responseTime: 120, uptime: 99.9, interval: 60, group: "Production", lastChecked: new Date().toISOString() },
+        { id: 2, name: "API Service", type: "HTTP", url: "https://api.example.com/status", status: "up", responseTime: 220, uptime: 99.7, interval: 30, group: "Production", lastChecked: new Date().toISOString() },
+        { id: 3, name: "Database", type: "TCP", host: "db.example.com", port: 5432, status: "up", responseTime: 45, uptime: 99.8, interval: 60, group: "Database", lastChecked: new Date().toISOString() },
+        { id: 4, name: "Mail Server", type: "TCP", host: "mail.example.com", port: 25, status: "down", responseTime: 0, uptime: 98.2, interval: 120, group: "Mail", lastChecked: new Date().toISOString() },
+        { id: 5, name: "Router", type: "PING", host: "192.168.1.1", status: "up", responseTime: 5, uptime: 100, interval: 60, group: "Network", lastChecked: new Date().toISOString() }
       ];
       setMonitors(mockMonitors);
       localStorage.setItem('monitors', JSON.stringify(mockMonitors));
@@ -62,6 +62,88 @@ export default function Dashboard() {
     };
   }, [navigate]);
 
+  const handleManualCheck = useCallback((monitorId: number, isManual: boolean = true) => {
+    // Prevent multiple simultaneous checks for the same monitor
+    if (checkingMonitors.current.has(monitorId)) {
+      return;
+    }
+    
+    // Find the monitor to check
+    const monitorToCheck = monitors.find(m => m.id === monitorId);
+    if (!monitorToCheck) return;
+    
+    checkingMonitors.current.add(monitorId);
+
+    // Update monitor status to pending during check
+    const updatedMonitors = monitors.map(m => 
+      m.id === monitorId ? { ...m, status: 'pending' as const, lastChecked: new Date().toISOString() } : m
+    );
+    setMonitors(updatedMonitors);
+    localStorage.setItem('monitors', JSON.stringify(updatedMonitors));
+
+    // Calculate check time - shorter for manual checks, regular interval for auto
+    const checkDelay = isManual ? 1000 + Math.random() * 1000 : 500 + Math.random() * 1500;
+
+    setTimeout(() => {
+      // Generate a realistic status with weighted probabilities
+      const isUp = Math.random() > (monitorToCheck.status === 'down' ? 0.3 : 0.1); // More likely to stay up if already up
+      const newStatus = isUp ? 'up' as const : 'down' as const;
+      
+      // Generate realistic response times based on status
+      const responseTime = newStatus === 'up' ? 
+        Math.floor(Math.random() * (monitorToCheck.responseTime * 1.5 || 500)) + 50 : 0;
+      
+      // More realistic string check simulation
+      let stringCheckResult = undefined;
+      if (monitorToCheck.stringCheckEnabled && monitorToCheck.expectedString && newStatus === 'up') {
+        // String check more likely to fail if it failed before
+        const failProbability = monitorToCheck.stringCheckResult === false ? 0.7 : 0.2;
+        stringCheckResult = Math.random() > failProbability;
+      }
+      
+      // Update the monitor with new results
+      const checkedMonitors = updatedMonitors.map(m => 
+        m.id === monitorId ? { 
+          ...m, 
+          status: newStatus, 
+          responseTime: responseTime,
+          lastChecked: new Date().toISOString(),
+          stringCheckResult: stringCheckResult,
+          // Update uptime calculation
+          uptime: m.uptime !== undefined ? 
+            newStatus === 'up' && !stringCheckResult === false ? 
+              Math.min(100, m.uptime + 0.01) : 
+              Math.max(0, m.uptime - 0.05) 
+            : 100
+        } : m
+      );
+      
+      setMonitors(checkedMonitors);
+      localStorage.setItem('monitors', JSON.stringify(checkedMonitors));
+      
+      // Only show toast for manual checks or when status changes to down or string check fails
+      const isStringCheckFailed = stringCheckResult === false && newStatus === 'up';
+      const wasDown = monitorToCheck.status === 'down';
+      const isNowDown = newStatus === 'down';
+      const statusChanged = wasDown !== isNowDown;
+      
+      if (isManual || (statusChanged || isStringCheckFailed)) {
+        toast({
+          title: isStringCheckFailed ? 
+            "String Check Failed" : 
+            `Monitor ${newStatus.toUpperCase()}`,
+          description: isStringCheckFailed ? 
+            `${monitorToCheck.name} is up but string check failed (${responseTime}ms)` : 
+            `${monitorToCheck.name} is ${newStatus}${newStatus === 'up' ? ` (${responseTime}ms)` : ''}`,
+          variant: (newStatus === 'down' || isStringCheckFailed) ? 'destructive' : 'default',
+        });
+      }
+      
+      // Remove from checking set
+      checkingMonitors.current.delete(monitorId);
+    }, checkDelay);
+  }, [monitors, toast]);
+
   useEffect(() => {
     // Setup auto-check intervals for each monitor
     if (monitors.length > 0) {
@@ -71,13 +153,37 @@ export default function Dashboard() {
       
       // Setup new intervals based on monitor configuration
       monitors.forEach(monitor => {
-        // Convert interval from seconds to milliseconds
-        const intervalMs = monitor.interval * 1000;
+        // Calculate initial delay based on lastChecked time
+        let initialDelay = monitor.interval * 1000;
         
-        // Set an interval for each monitor
-        intervalRefs.current[monitor.id] = setInterval(() => {
-          handleManualCheck(monitor.id, false); // false means it's an automatic check
-        }, intervalMs);
+        if (monitor.lastChecked) {
+          const lastChecked = new Date(monitor.lastChecked);
+          const now = new Date();
+          const diffMs = now.getTime() - lastChecked.getTime();
+          const elapsedSecs = diffMs / 1000;
+          
+          if (elapsedSecs >= monitor.interval) {
+            // Already overdue, check soon but stagger checks
+            initialDelay = Math.random() * 5000;
+          } else {
+            // Set delay for remaining time
+            initialDelay = (monitor.interval - elapsedSecs) * 1000;
+          }
+        }
+        
+        // Schedule initial check after calculated delay
+        const initialTimer = setTimeout(() => {
+          handleManualCheck(monitor.id, false);
+          
+          // Then setup the regular interval
+          intervalRefs.current[monitor.id] = setInterval(() => {
+            handleManualCheck(monitor.id, false);
+          }, monitor.interval * 1000);
+          
+        }, initialDelay);
+        
+        // Store initial timeout reference
+        intervalRefs.current[monitor.id] = initialTimer as unknown as NodeJS.Timeout;
       });
     }
     
@@ -85,7 +191,7 @@ export default function Dashboard() {
       // Clear all intervals when component unmounts or monitors change
       Object.values(intervalRefs.current).forEach(interval => clearInterval(interval));
     };
-  }, [monitors]);
+  }, [monitors, handleManualCheck]);
 
   const toggleDarkMode = () => {
     if (darkMode) {
@@ -108,60 +214,6 @@ export default function Dashboard() {
       title: "Logged Out",
       description: "You have been successfully logged out.",
     });
-  };
-
-  const handleManualCheck = (monitorId: number, isManual: boolean = true) => {
-    // Find the monitor to check
-    const monitorToCheck = monitors.find(m => m.id === monitorId);
-    if (!monitorToCheck) return;
-
-    // Update monitor status to pending during check
-    const updatedMonitors = monitors.map(m => 
-      m.id === monitorId ? { ...m, status: 'pending' as const, lastChecked: new Date().toISOString() } : m
-    );
-    setMonitors(updatedMonitors);
-    localStorage.setItem('monitors', JSON.stringify(updatedMonitors));
-
-    // Simulate check process - in a real app, this would be an actual HTTP request
-    setTimeout(() => {
-      // Generate a random status (up/down) for simulation
-      const newStatus = Math.random() > 0.2 ? 'up' as const : 'down' as const;
-      const responseTime = newStatus === 'up' ? Math.floor(Math.random() * 500) + 50 : 0;
-      
-      // Simulate string check results if enabled
-      let stringCheckResult = undefined;
-      if (monitorToCheck.stringCheckEnabled && monitorToCheck.expectedString) {
-        stringCheckResult = Math.random() > 0.3; // 70% chance of passing the string check
-      }
-      
-      const checkedMonitors = updatedMonitors.map(m => 
-        m.id === monitorId ? { 
-          ...m, 
-          status: newStatus, 
-          responseTime: responseTime,
-          lastChecked: new Date().toISOString(),
-          stringCheckResult: stringCheckResult
-        } : m
-      );
-      
-      setMonitors(checkedMonitors);
-      localStorage.setItem('monitors', JSON.stringify(checkedMonitors));
-      
-      // Only show toast for manual checks or when status changes to down
-      if (isManual || (newStatus === 'down' || stringCheckResult === false)) {
-        const isStringCheckFailed = stringCheckResult === false && newStatus === 'up';
-        
-        toast({
-          title: isStringCheckFailed ? 
-            "String Check Failed" : 
-            `Monitor ${newStatus.toUpperCase()}`,
-          description: isStringCheckFailed ? 
-            `${monitorToCheck.name} is up but string check failed` : 
-            `${monitorToCheck.name} is ${newStatus}`,
-          variant: (newStatus === 'down' || isStringCheckFailed) ? 'destructive' : 'default',
-        });
-      }
-    }, 2000);
   };
 
   // Get unique groups for filtering
@@ -220,7 +272,9 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">Monitors Up</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">{monitors.filter(m => m.status === 'up').length}</div>
+            <div className="text-2xl font-bold text-green-500">
+              {monitors.filter(m => m.status === 'up' && (m.stringCheckEnabled ? m.stringCheckResult !== false : true)).length}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -228,7 +282,9 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">Monitors Down</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">{monitors.filter(m => m.status === 'down').length}</div>
+            <div className="text-2xl font-bold text-red-500">
+              {monitors.filter(m => m.status === 'down' || (m.stringCheckEnabled && m.stringCheckResult === false)).length}
+            </div>
           </CardContent>
         </Card>
         <Card>

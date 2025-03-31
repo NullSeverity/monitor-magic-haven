@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChromePicker } from 'react-color';
 import { useTheme } from '@/providers/ThemeProvider';
 import { Switch } from "@/components/ui/switch";
+import { themeConfigurations, fontOptions } from '@/themes/themeConfigs';
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ThemeSettingsProps {
   className?: string;
@@ -23,10 +25,30 @@ const ThemeSettings = () => {
 
   const handleThemeChange = (value: string) => {
     setTheme(value);
+    
+    // Also update the settings object
+    setSettings({
+      ...settings,
+      theme: value
+    });
+    
+    // Update font to recommended font for the theme
+    if (value in themeConfigurations) {
+      const recommendedFont = themeConfigurations[value as keyof typeof themeConfigurations].fonts.recommended;
+      setFont(recommendedFont);
+      setSettings(prev => ({
+        ...prev,
+        font: recommendedFont
+      }));
+    }
   };
 
   const handleFontChange = (value: string) => {
     setFont(value);
+    setSettings({
+      ...settings,
+      font: value
+    });
   };
 
   const handlePrimaryColorChange = (color: any) => {
@@ -34,6 +56,7 @@ const ThemeSettings = () => {
       ...settings,
       primaryColor: color.hex
     });
+    document.documentElement.style.setProperty('--primary', color.hex);
   };
 
   const handleSecondaryColorChange = (color: any) => {
@@ -41,6 +64,7 @@ const ThemeSettings = () => {
       ...settings,
       secondaryColor: color.hex
     });
+    document.documentElement.style.setProperty('--secondary', color.hex);
   };
 
   const handleAllowIndexingChange = (checked: boolean) => {
@@ -64,46 +88,75 @@ const ThemeSettings = () => {
         <Input id="title" placeholder="Enter app title" value={settings.appTitle} onChange={handleTitleChange} />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-4">
         <Label htmlFor="theme">Theme</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {Object.entries(themeConfigurations).map(([key, config]) => (
+            <Card 
+              key={key} 
+              className={`cursor-pointer overflow-hidden transition-all duration-200 ${theme === key ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => handleThemeChange(key)}
+            >
+              <div className={`h-24 ${config.preview}`}></div>
+              <CardContent className="p-3">
+                <h4 className="font-medium">{config.name}</h4>
+                <p className="text-xs text-muted-foreground">{config.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
         <Select value={theme} onValueChange={handleThemeChange}>
           <SelectTrigger id="theme">
             <SelectValue placeholder="Select a theme" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="default">Default</SelectItem>
-            <SelectItem value="minimalist">Minimalist</SelectItem>
-            <SelectItem value="modern">Modern</SelectItem>
-            <SelectItem value="mechanical">Mechanical</SelectItem>
-            <SelectItem value="cyberpunk">Cyberpunk</SelectItem>
+            {Object.entries(themeConfigurations).map(([key, config]) => (
+              <SelectItem key={key} value={key}>{config.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-4">
         <Label htmlFor="font">Font</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {Object.entries(fontOptions).map(([key, config]) => (
+            <Card 
+              key={key} 
+              className={`cursor-pointer overflow-hidden transition-all duration-200 ${font === key ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => handleFontChange(key)}
+              style={{ fontFamily: config.family }}
+            >
+              <CardContent className="p-3">
+                <h4 className="font-medium">{config.name}</h4>
+                <p className="text-xs text-muted-foreground">{config.description}</p>
+                <div className="mt-2 text-sm">
+                  The quick brown fox jumps over the lazy dog.
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
         <Select value={font} onValueChange={handleFontChange}>
           <SelectTrigger id="font">
             <SelectValue placeholder="Select a font" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="inter">Inter</SelectItem>
-            <SelectItem value="poppins">Poppins</SelectItem>
-            <SelectItem value="roboto-mono">Roboto Mono</SelectItem>
-            <SelectItem value="space-grotesk">Space Grotesk</SelectItem>
-            <SelectItem value="jetbrains-mono">JetBrains Mono</SelectItem>
+            {Object.entries(fontOptions).map(([key, config]) => (
+              <SelectItem key={key} value={key}>{config.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-4">
         <Label>Primary Color</Label>
-        <ChromePicker color={settings.primaryColor} onChange={handlePrimaryColorChange} />
+        <ChromePicker color={settings.primaryColor} onChange={handlePrimaryColorChange} disableAlpha />
       </div>
 
       <div className="space-y-4">
         <Label>Secondary Color</Label>
-        <ChromePicker color={settings.secondaryColor} onChange={handleSecondaryColorChange} />
+        <ChromePicker color={settings.secondaryColor} onChange={handleSecondaryColorChange} disableAlpha />
       </div>
       
       <div className="space-y-4">

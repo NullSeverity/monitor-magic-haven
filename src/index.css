@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -88,6 +89,64 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+  
+  /* Theme-specific styles */
+  .minimalist {
+    --background: 0 0% 100%;
+    --foreground: 220 14% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 14% 10%;
+    --muted: 220 14% 97%;
+    --muted-foreground: 220 14% 60%;
+    --accent: 220 14% 92%;
+    --accent-foreground: 220 14% 20%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 14% 20%;
+    --radius: 0.3rem;
+  }
+
+  .modern {
+    --background: 230 30% 99%;
+    --foreground: 230 60% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 230 60% 15%;
+    --muted: 230 40% 96%;
+    --muted-foreground: 230 15% 50%;
+    --accent: 230 60% 90%;
+    --accent-foreground: 230 60% 30%;
+    --sidebar-background: 230 60% 50%;
+    --sidebar-foreground: 0 0% 100%;
+    --radius: 1rem;
+  }
+
+  .mechanical {
+    --background: 0 0% 97%;
+    --foreground: 200 9% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 200 9% 15%;
+    --muted: 200 9% 90%;
+    --muted-foreground: 200 9% 40%;
+    --accent: 25 80% 50%;
+    --accent-foreground: 0 0% 100%;
+    --sidebar-background: 200 9% 15%;
+    --sidebar-foreground: 0 0% 90%;
+    --radius: 0.2rem;
+  }
+
+  .cyberpunk {
+    --background: 230 20% 10%;
+    --foreground: 175 100% 95%;
+    --card: 230 20% 15%;
+    --card-foreground: 175 100% 95%;
+    --muted: 230 20% 20%;
+    --muted-foreground: 175 50% 70%;
+    --accent: 265 100% 60%;
+    --accent-foreground: 0 0% 100%;
+    --sidebar-background: 265 50% 20%;
+    --sidebar-foreground: 175 100% 90%;
+    --radius: 0.1rem;
+    --border: 320 100% 60%;
+  }
 }
 
 @layer base {
@@ -96,6 +155,6 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
   }
 }

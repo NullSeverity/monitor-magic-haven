@@ -1,5 +1,6 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { themeConfigurations } from '@/themes/themeConfigs';
 
 // Add these type exports
 export type ThemeOption = 'default' | 'minimalist' | 'modern' | 'mechanical' | 'cyberpunk';
@@ -69,20 +70,49 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
-    document.documentElement.className = theme; // Set theme as class on html element
+    
+    // Remove all theme classes first
+    const themeOptions: ThemeOption[] = ['default', 'minimalist', 'modern', 'mechanical', 'cyberpunk'];
+    themeOptions.forEach(t => {
+      document.documentElement.classList.remove(t);
+    });
+    
+    // Add current theme as class
+    document.documentElement.classList.add(theme);
+    
+    // Apply theme colors from configuration
+    if (theme in themeConfigurations) {
+      const config = themeConfigurations[theme as ThemeOption];
+      
+      // Apply CSS Variables
+      const root = document.documentElement;
+      
+      // Set colors from the theme configuration
+      root.style.setProperty('--background', config.colors.background);
+      root.style.setProperty('--foreground', config.colors.foreground);
+      root.style.setProperty('--card', config.colors.card);
+      root.style.setProperty('--card-foreground', config.colors.cardForeground);
+      root.style.setProperty('--muted', config.colors.muted);
+      root.style.setProperty('--muted-foreground', config.colors.mutedForeground);
+      root.style.setProperty('--accent', config.colors.accent);
+      root.style.setProperty('--accent-foreground', config.colors.accentForeground);
+      root.style.setProperty('--sidebar-background', config.colors.sidebar);
+      root.style.setProperty('--sidebar-foreground', config.colors.sidebarForeground);
+    }
   }, [theme]);
 
   useEffect(() => {
     localStorage.setItem('font', font);
-    document.documentElement.style.fontFamily = font; // Set font as inline style
+    document.documentElement.style.fontFamily = font;
+    
+    // Apply font family from configuration
+    document.body.className = '';
+    document.body.classList.add(`font-${font}`);
   }, [font]);
 
   useEffect(() => {
     localStorage.setItem('settings', JSON.stringify(settings));
-  }, [settings]);
-
-  // Update the effect to manage robots meta tag
-  useEffect(() => {
+    
     // Handle the robots meta tag for indexing control
     let robotsMetaTag = document.querySelector('meta[name="robots"]');
     
@@ -97,7 +127,16 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     } else {
       robotsMetaTag.setAttribute('content', 'noindex, nofollow');
     }
-  }, [settings.allowIndexing]);
+    
+    // Apply custom colors from settings
+    if (settings.primaryColor) {
+      document.documentElement.style.setProperty('--primary', settings.primaryColor);
+    }
+    
+    if (settings.secondaryColor) {
+      document.documentElement.style.setProperty('--secondary', settings.secondaryColor);
+    }
+  }, [settings]);
 
   return (
     <ThemeContext.Provider value={{ darkMode, setDarkMode, theme, setTheme, font, setFont, settings, setSettings }}>

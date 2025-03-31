@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Monitor } from "@/types/monitor";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,13 +26,18 @@ export default function MonitorForm() {
     uptime: 0,
     group: 'Default',
     expectedString: '',
-    stringCheckEnabled: false
+    stringCheckEnabled: false,
+    headers: [],
+    triggers: []
   });
   const [notifyOptions, setNotifyOptions] = useState({
     email: false,
     telegram: false,
     discord: false
   });
+  const [headerKey, setHeaderKey] = useState('');
+  const [headerValue, setHeaderValue] = useState('');
+  const [triggerUrl, setTriggerUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -84,6 +89,66 @@ export default function MonitorForm() {
 
   const handleCheckboxChange = (name: string, checked: boolean) => {
     setMonitor(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const addHeader = () => {
+    if (!headerKey || !headerValue) {
+      toast({
+        title: "Validation Error",
+        description: "Both header name and value are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setMonitor(prev => ({
+      ...prev,
+      headers: [...(prev.headers || []), { key: headerKey, value: headerValue }]
+    }));
+    
+    setHeaderKey('');
+    setHeaderValue('');
+  };
+
+  const removeHeader = (index: number) => {
+    setMonitor(prev => ({
+      ...prev,
+      headers: prev.headers?.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addTrigger = () => {
+    if (!triggerUrl) {
+      toast({
+        title: "Validation Error",
+        description: "Trigger URL is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!triggerUrl.startsWith('http://') && !triggerUrl.startsWith('https://')) {
+      toast({
+        title: "Validation Error",
+        description: "Trigger URL must start with http:// or https://",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setMonitor(prev => ({
+      ...prev,
+      triggers: [...(prev.triggers || []), triggerUrl]
+    }));
+    
+    setTriggerUrl('');
+  };
+
+  const removeTrigger = (index: number) => {
+    setMonitor(prev => ({
+      ...prev,
+      triggers: prev.triggers?.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSave = () => {
@@ -227,6 +292,7 @@ export default function MonitorForm() {
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="notification">Notifications</TabsTrigger>
               <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              <TabsTrigger value="triggers">Triggers</TabsTrigger>
             </TabsList>
             
             <TabsContent value="general" className="space-y-4">
@@ -420,6 +486,48 @@ export default function MonitorForm() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>Custom Headers</Label>
+                    <div className="space-y-2">
+                      {monitor.headers?.map((header, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <div className="flex-1 bg-muted p-2 rounded-md">
+                            <span className="font-semibold">{header.key}:</span> {header.value}
+                          </div>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => removeHeader(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <Input 
+                        placeholder="Header name" 
+                        value={headerKey}
+                        onChange={(e) => setHeaderKey(e.target.value)}
+                      />
+                      <Input 
+                        placeholder="Header value" 
+                        value={headerValue}
+                        onChange={(e) => setHeaderValue(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={addHeader}
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add Header
+                    </Button>
+                  </div>
                 </div>
               )}
               
@@ -434,6 +542,52 @@ export default function MonitorForm() {
                   placeholder="1" 
                 />
                 <p className="text-xs text-muted-foreground">Number of failed checks before notification is sent</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="triggers" className="space-y-4">
+              <div className="space-y-4">
+                <h3 className="text-md font-medium">Down Triggers</h3>
+                <p className="text-muted-foreground">
+                  Add URLs to be requested when the monitor goes down
+                </p>
+                
+                <div className="space-y-2">
+                  {monitor.triggers?.map((url, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <div className="flex-1 bg-muted p-2 rounded-md break-all">
+                        {url}
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => removeTrigger(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <Input 
+                    className="flex-1"
+                    placeholder="https://example.com/trigger" 
+                    value={triggerUrl}
+                    onChange={(e) => setTriggerUrl(e.target.value)}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={addTrigger}
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Add
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  These URLs will be requested when the monitor goes down. Use webhooks or API endpoints that can trigger actions in other systems.
+                </p>
               </div>
             </TabsContent>
           </Tabs>

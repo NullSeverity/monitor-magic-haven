@@ -16,6 +16,7 @@ export interface Monitor {
   notifications?: string[];
   expectedString?: string;
   stringCheckEnabled?: boolean;
+  stringCheckResult?: boolean;
   headers?: { key: string; value: string }[];
   triggers?: string[];
   userAgent?: string;

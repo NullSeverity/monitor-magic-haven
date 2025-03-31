@@ -94,6 +94,21 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
     }, 2000);
   };
 
+  // Determine if a string check has failed
+  const hasStringCheckFailed = () => {
+    return monitor.stringCheckEnabled && 
+           monitor.stringCheckResult === false && 
+           monitor.status === 'up';
+  };
+
+  // Get the combined status considering both HTTP status and string check
+  const getEffectiveStatus = () => {
+    if (hasStringCheckFailed()) {
+      return 'down';
+    }
+    return monitor.status;
+  };
+
   return (
     <Card className="hover:shadow-md transition-shadow overflow-hidden">
       <CardHeader className="py-3 px-4 relative">
@@ -114,7 +129,10 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
             </CardDescription>
           </div>
           <div className="flex items-center">
-            <StatusBadge status={monitor.status} />
+            <StatusBadge 
+              status={getEffectiveStatus()} 
+              stringCheckFailed={hasStringCheckFailed()} 
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -143,11 +161,11 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
           <div 
             key={index} 
             className={`h-2 flex-1 rounded-sm ${
-              status === 'up' ? 'bg-green-500' : 
-              status === 'down' ? 'bg-red-500' : 
+              status === 'up' && !hasStringCheckFailed() ? 'bg-green-500' : 
+              status === 'down' || hasStringCheckFailed() ? 'bg-red-500' : 
               'bg-yellow-500'
             }`}
-            title={`Status: ${status}`}
+            title={`Status: ${status}${hasStringCheckFailed() ? ' (String check failed)' : ''}`}
           />
         ))}
       </div>
@@ -196,6 +214,11 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
                 <Bell className="h-2 w-2 mr-1" /> {monitor.triggers.length}
               </Badge>
             )}
+            {hasStringCheckFailed() && (
+              <Badge variant="destructive" className="text-xs ml-1">
+                String Check Failed
+              </Badge>
+            )}
           </div>
           <div>
             {monitor.lastChecked && `Last checked: ${new Date(monitor.lastChecked).toLocaleTimeString()}`}
@@ -206,7 +229,11 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
   );
 };
 
-const StatusBadge = ({ status }: { status: 'up' | 'down' | 'pending' }) => {
+const StatusBadge = ({ status, stringCheckFailed }: { status: 'up' | 'down' | 'pending', stringCheckFailed?: boolean }) => {
+  if (stringCheckFailed) {
+    return <Badge variant="destructive">String Check Failed</Badge>;
+  }
+  
   if (status === 'up') {
     return <Badge className="bg-green-500">Up</Badge>;
   } else if (status === 'pending') {

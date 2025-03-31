@@ -167,17 +167,39 @@ export default function MonitorForm() {
       const isUp = Math.random() > 0.3;
       const responseTime = isUp ? Math.floor(Math.random() * 500) + 50 : 0;
       
+      let stringCheckResult;
+      if (monitor.stringCheckEnabled && isUp) {
+        stringCheckResult = Math.random() > 0.3; // 70% chance of successful string check
+      }
+      
       setMonitor(prev => ({
         ...prev,
         status: isUp ? 'up' : 'down',
         responseTime,
-        lastChecked: new Date().toISOString()
+        lastChecked: new Date().toISOString(),
+        stringCheckResult: monitor.stringCheckEnabled ? stringCheckResult : undefined
       }));
       
+      let title, description, variant;
+      
+      if (!isUp) {
+        title = "Monitor is Down";
+        description = "Failed to connect";
+        variant = "destructive";
+      } else if (monitor.stringCheckEnabled && !stringCheckResult) {
+        title = "String Check Failed";
+        description = `Connection OK but expected string not found (${responseTime}ms)`;
+        variant = "destructive";
+      } else {
+        title = "Monitor is Up";
+        description = `Response time: ${responseTime}ms`;
+        variant = "default";
+      }
+      
       toast({
-        title: isUp ? "Monitor is Up" : "Monitor is Down",
-        description: isUp ? `Response time: ${responseTime}ms` : "Failed to connect",
-        variant: isUp ? "default" : "destructive",
+        title,
+        description,
+        variant,
       });
       
       setChecking(false);
@@ -263,21 +285,43 @@ export default function MonitorForm() {
             const isUp = Math.random() > 0.3;
             const responseTime = isUp ? Math.floor(Math.random() * 500) + 50 : 0;
             
+            let stringCheckResult;
+            if (monitorToCheck.stringCheckEnabled && isUp) {
+              stringCheckResult = Math.random() > 0.3; // 70% chance of successful string check
+            }
+            
             const checkedMonitors = updatedMonitors.map((m: Monitor) => 
               m.id === newId ? { 
                 ...m, 
                 status: isUp ? 'up' : 'down', 
                 responseTime,
-                lastChecked: new Date().toISOString()
+                lastChecked: new Date().toISOString(),
+                stringCheckResult: m.stringCheckEnabled ? stringCheckResult : undefined
               } : m
             );
             
             localStorage.setItem('monitors', JSON.stringify(checkedMonitors));
             
+            let title, description, variant;
+            
+            if (!isUp) {
+              title = "Initial Check: DOWN";
+              description = `${newMonitor.name} is down`;
+              variant = "destructive";
+            } else if (monitorToCheck.stringCheckEnabled && !stringCheckResult) {
+              title = "Initial Check: String Check Failed";
+              description = `${newMonitor.name} is up but string check failed (${responseTime}ms)`;
+              variant = "destructive";
+            } else {
+              title = "Initial Check: UP";
+              description = `${newMonitor.name} is up (${responseTime}ms)`;
+              variant = "default";
+            }
+            
             toast({
-              title: isUp ? "Initial Check: UP" : "Initial Check: DOWN",
-              description: isUp ? `${newMonitor.name} is up (${responseTime}ms)` : `${newMonitor.name} is down`,
-              variant: isUp ? "default" : "destructive",
+              title,
+              description,
+              variant,
             });
           }
         }, 1000);
@@ -303,21 +347,43 @@ export default function MonitorForm() {
             const isUp = Math.random() > 0.3;
             const responseTime = isUp ? Math.floor(Math.random() * 500) + 50 : 0;
             
+            let stringCheckResult;
+            if (monitorToCheck.stringCheckEnabled && isUp) {
+              stringCheckResult = Math.random() > 0.3; // 70% chance of successful string check
+            }
+            
             const checkedMonitors = updatedMonitorsAfterSave.map((m: Monitor) => 
               m.id === parseInt(id || '0') ? { 
                 ...m, 
                 status: isUp ? 'up' : 'down', 
                 responseTime,
-                lastChecked: new Date().toISOString()
+                lastChecked: new Date().toISOString(),
+                stringCheckResult: m.stringCheckEnabled ? stringCheckResult : undefined
               } : m
             );
             
             localStorage.setItem('monitors', JSON.stringify(checkedMonitors));
             
+            let title, description, variant;
+            
+            if (!isUp) {
+              title = "Check after update: DOWN";
+              description = `${monitorToCheck.name} is down`;
+              variant = "destructive";
+            } else if (monitorToCheck.stringCheckEnabled && !stringCheckResult) {
+              title = "Check after update: String Check Failed";
+              description = `${monitorToCheck.name} is up but string check failed (${responseTime}ms)`;
+              variant = "destructive";
+            } else {
+              title = "Check after update: UP";
+              description = `${monitorToCheck.name} is up (${responseTime}ms)`;
+              variant = "default";
+            }
+            
             toast({
-              title: isUp ? "Check after update: UP" : "Check after update: DOWN",
-              description: isUp ? `${monitorToCheck.name} is up (${responseTime}ms)` : `${monitorToCheck.name} is down`,
-              variant: isUp ? "default" : "destructive",
+              title,
+              description,
+              variant,
             });
           }
         }, 1000);

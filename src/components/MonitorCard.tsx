@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -65,7 +64,6 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
       const progress = Math.min(100, (diffSecs / intervalSecs) * 100);
       setNextCheckProgress(progress);
       
-      // Check if we're overdue for a check (real-time indicator)
       if (progress >= 100 && isLive) {
         setIsLive(false);
         onCheck();
@@ -82,10 +80,31 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
 
   const updateStatusHistory = (newStatus: 'up' | 'down' | 'pending') => {
     setStatusHistory(prevHistory => {
-      const updatedHistory = [...prevHistory.slice(1), newStatus];
+      const updatedHistory: Array<'up' | 'down' | 'pending'> = [...prevHistory.slice(1), newStatus];
       localStorage.setItem(`status_history_${monitor.id}`, JSON.stringify(updatedHistory));
       return updatedHistory;
     });
+  };
+
+  const handleManualCheck = async () => {
+    if (isChecking) return;
+    
+    setIsChecking(true);
+    setStatusHistory(prevHistory => {
+      const updatedHistory: Array<'up' | 'down' | 'pending'> = [...prevHistory.slice(1), 'pending'];
+      localStorage.setItem(`status_history_${monitor.id}`, JSON.stringify(updatedHistory));
+      return updatedHistory;
+    });
+    
+    onCheck();
+    
+    setTimeout(() => {
+      setIsChecking(false);
+      toast({
+        title: "Check Complete",
+        description: `Status check for ${monitor.name} completed.`,
+      });
+    }, 2000);
   };
 
   const getStatusIcon = () => {
@@ -114,27 +133,6 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
         <span className={color}>{monitor.responseTime} ms</span>
       </div>
     );
-  };
-
-  const handleManualCheck = async () => {
-    if (isChecking) return;
-    
-    setIsChecking(true);
-    setStatusHistory(prevHistory => {
-      const updatedHistory = [...prevHistory.slice(1), 'pending'];
-      localStorage.setItem(`status_history_${monitor.id}`, JSON.stringify(updatedHistory));
-      return updatedHistory;
-    });
-    
-    onCheck();
-    
-    setTimeout(() => {
-      setIsChecking(false);
-      toast({
-        title: "Check Complete",
-        description: `Status check for ${monitor.name} completed.`,
-      });
-    }, 2000);
   };
 
   const hasStringCheckFailed = () => {

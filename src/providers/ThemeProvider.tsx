@@ -6,7 +6,8 @@ import { themeConfigurations } from '@/themes/themeConfigs';
 export type ThemeOption = 'default' | 'minimalist' | 'modern' | 'mechanical' | 'cyberpunk';
 export type FontOption = 'inter' | 'poppins' | 'roboto-mono' | 'space-grotesk' | 'jetbrains-mono';
 
-interface Settings {
+// Export the Settings interface
+export interface Settings {
   theme: string;
   font: string;
   appTitle: string;

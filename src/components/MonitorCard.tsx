@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Server, Wifi, Clock, Bell, ChevronDown, RefreshCw, ExternalLink, Heart, Gauge } from "lucide-react";
+import { Activity, Server, Wifi, Clock, Bell, ChevronDown, RefreshCw, ExternalLink, Heart, Gauge, Pulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Monitor } from "@/types/monitor";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -19,6 +19,8 @@ interface MonitorCardProps {
 const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) => {
   const [isChecking, setIsChecking] = useState(false);
   const [statusHistory, setStatusHistory] = useState<Array<'up' | 'down' | 'pending'>>([]);
+  const [timeSinceLastCheck, setTimeSinceLastCheck] = useState<string>("");
+  const [nextCheckProgress, setNextCheckProgress] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -43,6 +45,40 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
       updateStatusHistory(monitor.status);
     }
   }, [monitor.lastChecked]);
+
+  // Timer for showing time since last check
+  useEffect(() => {
+    if (!monitor.lastChecked) return;
+    
+    const updateTimers = () => {
+      // Calculate time since last check
+      const lastChecked = new Date(monitor.lastChecked || new Date());
+      const now = new Date();
+      const diffMs = now.getTime() - lastChecked.getTime();
+      const diffSecs = Math.floor(diffMs / 1000);
+      
+      if (diffSecs < 60) {
+        setTimeSinceLastCheck(`${diffSecs}s ago`);
+      } else if (diffSecs < 3600) {
+        setTimeSinceLastCheck(`${Math.floor(diffSecs / 60)}m ago`);
+      } else {
+        setTimeSinceLastCheck(`${Math.floor(diffSecs / 3600)}h ago`);
+      }
+      
+      // Calculate progress towards next check
+      const intervalSecs = monitor.interval;
+      const progress = Math.min(100, (diffSecs / intervalSecs) * 100);
+      setNextCheckProgress(progress);
+    };
+    
+    // Initial update
+    updateTimers();
+    
+    // Set interval for updating the timer
+    const timer = setInterval(updateTimers, 1000);
+    
+    return () => clearInterval(timer);
+  }, [monitor.lastChecked, monitor.interval]);
 
   const updateStatusHistory = (newStatus: 'up' | 'down' | 'pending') => {
     setStatusHistory(prevHistory => {
@@ -170,6 +206,15 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
         ))}
       </div>
 
+      {/* Progress bar for next check */}
+      <div className="px-4 pt-2">
+        <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+          <span>Last check: {timeSinceLastCheck}</span>
+          <span>Next check: {Math.max(0, monitor.interval - Math.floor((nextCheckProgress / 100) * monitor.interval))}s</span>
+        </div>
+        <Progress value={nextCheckProgress} className="h-1" />
+      </div>
+
       <CardContent className="py-2 px-4">
         <div className="flex justify-between items-center text-sm">
           <div className="flex items-center space-x-3">
@@ -220,8 +265,9 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
               </Badge>
             )}
           </div>
-          <div>
-            {monitor.lastChecked && `Last checked: ${new Date(monitor.lastChecked).toLocaleTimeString()}`}
+          <div className="flex items-center">
+            <Pulse className="h-3 w-3 mr-1 animate-pulse" />
+            <span>Auto-checking every {monitor.interval}s</span>
           </div>
         </div>
       </CardFooter>

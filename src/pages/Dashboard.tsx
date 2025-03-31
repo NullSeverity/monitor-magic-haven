@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const intervalRefs = useRef<Record<number, NodeJS.Timeout>>({});
 
   useEffect(() => {
     // Check authentication
@@ -54,7 +55,37 @@ export default function Dashboard() {
     if (document.documentElement.classList.contains('dark')) {
       setDarkMode(true);
     }
+
+    return () => {
+      // Clear all intervals when component unmounts
+      Object.values(intervalRefs.current).forEach(interval => clearInterval(interval));
+    };
   }, [navigate]);
+
+  useEffect(() => {
+    // Setup auto-check intervals for each monitor
+    if (monitors.length > 0) {
+      // Clear any existing intervals first
+      Object.values(intervalRefs.current).forEach(interval => clearInterval(interval));
+      intervalRefs.current = {};
+      
+      // Setup new intervals based on monitor configuration
+      monitors.forEach(monitor => {
+        // Convert interval from seconds to milliseconds
+        const intervalMs = monitor.interval * 1000;
+        
+        // Set an interval for each monitor
+        intervalRefs.current[monitor.id] = setInterval(() => {
+          handleManualCheck(monitor.id, false); // false means it's an automatic check
+        }, intervalMs);
+      });
+    }
+    
+    return () => {
+      // Clear all intervals when component unmounts or monitors change
+      Object.values(intervalRefs.current).forEach(interval => clearInterval(interval));
+    };
+  }, [monitors]);
 
   const toggleDarkMode = () => {
     if (darkMode) {
@@ -79,7 +110,7 @@ export default function Dashboard() {
     });
   };
 
-  const handleManualCheck = (monitorId: number) => {
+  const handleManualCheck = (monitorId: number, isManual: boolean = true) => {
     // Find the monitor to check
     const monitorToCheck = monitors.find(m => m.id === monitorId);
     if (!monitorToCheck) return;
@@ -97,23 +128,39 @@ export default function Dashboard() {
       const newStatus = Math.random() > 0.2 ? 'up' as const : 'down' as const;
       const responseTime = newStatus === 'up' ? Math.floor(Math.random() * 500) + 50 : 0;
       
+      // Simulate string check results if enabled
+      let stringCheckResult = undefined;
+      if (monitorToCheck.stringCheckEnabled && monitorToCheck.expectedString) {
+        stringCheckResult = Math.random() > 0.3; // 70% chance of passing the string check
+      }
+      
       const checkedMonitors = updatedMonitors.map(m => 
         m.id === monitorId ? { 
           ...m, 
           status: newStatus, 
           responseTime: responseTime,
-          lastChecked: new Date().toISOString()
+          lastChecked: new Date().toISOString(),
+          stringCheckResult: stringCheckResult
         } : m
       );
       
       setMonitors(checkedMonitors);
       localStorage.setItem('monitors', JSON.stringify(checkedMonitors));
       
-      toast({
-        title: `Monitor ${newStatus.toUpperCase()}`,
-        description: `${monitorToCheck.name} is ${newStatus}`,
-        variant: newStatus === 'up' ? 'default' : 'destructive',
-      });
+      // Only show toast for manual checks or when status changes to down
+      if (isManual || (newStatus === 'down' || stringCheckResult === false)) {
+        const isStringCheckFailed = stringCheckResult === false && newStatus === 'up';
+        
+        toast({
+          title: isStringCheckFailed ? 
+            "String Check Failed" : 
+            `Monitor ${newStatus.toUpperCase()}`,
+          description: isStringCheckFailed ? 
+            `${monitorToCheck.name} is up but string check failed` : 
+            `${monitorToCheck.name} is ${newStatus}`,
+          variant: (newStatus === 'down' || isStringCheckFailed) ? 'destructive' : 'default',
+        });
+      }
     }, 2000);
   };
 

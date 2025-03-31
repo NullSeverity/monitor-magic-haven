@@ -8,6 +8,32 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Activity } from "lucide-react";
 
+// Define user types with roles
+type UserRole = 'admin' | 'user';
+
+interface User {
+  email: string;
+  password: string;
+  name: string;
+  role: UserRole;
+}
+
+// Mock users database
+const USERS: User[] = [
+  { 
+    email: 'admin@example.com', 
+    password: 'adminpass', 
+    name: 'Admin User', 
+    role: 'admin' 
+  },
+  { 
+    email: 'user@example.com', 
+    password: 'userpass', 
+    name: 'Regular User', 
+    role: 'user' 
+  }
+];
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,21 +56,29 @@ export default function Login() {
       return;
     }
 
-    // Mock authentication - in a real app this would call your API
+    // Authentication logic
     setTimeout(() => {
-      // Mock credentials for demo
-      if (email === 'admin@example.com' && password === 'password') {
+      const user = USERS.find(user => user.email === email && user.password === password);
+      
+      if (user) {
         toast({
           title: "Success",
-          description: "You've been logged in successfully",
+          description: `You've been logged in successfully as ${user.role}`,
         });
+        
+        // Save user info with role to localStorage
         localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('user', JSON.stringify({ name: 'Admin User', email, role: 'admin' }));
+        localStorage.setItem('user', JSON.stringify({ 
+          name: user.name, 
+          email: user.email, 
+          role: user.role 
+        }));
+        
         navigate('/dashboard');
       } else {
         toast({
           title: "Authentication Failed",
-          description: "Invalid credentials. Try admin@example.com / password",
+          description: "Invalid credentials. Try admin@example.com / adminpass or user@example.com / userpass",
           variant: "destructive",
         });
       }
@@ -87,11 +121,15 @@ export default function Login() {
               <Input 
                 id="password" 
                 type="password" 
-                placeholder="password" 
+                placeholder="adminpass" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <strong>Admin access:</strong> admin@example.com / adminpass<br />
+              <strong>Regular user:</strong> user@example.com / userpass
             </div>
           </CardContent>
           <CardFooter>

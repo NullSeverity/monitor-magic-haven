@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MoonIcon, SunIcon, PlusCircle, Activity, Settings, Bell, LogOut } from "lucide-react";
+import { MoonIcon, SunIcon, PlusCircle, Activity, Settings, Bell, LogOut, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +13,7 @@ import { Monitor } from "@/types/monitor";
 export default function Dashboard() {
   const [darkMode, setDarkMode] = useState(false);
   const [monitors, setMonitors] = useState<Monitor[]>([]);
+  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -23,6 +23,13 @@ export default function Dashboard() {
     if (!isAuthenticated) {
       navigate('/login');
       return;
+    }
+
+    // Get user role
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      setUserRole(user.role as 'admin' | 'user');
     }
 
     // Load monitors from localStorage or use mock data
@@ -81,6 +88,11 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold flex items-center">
             <Activity className="mr-2" />
             Uptime Monitor
+            {userRole === 'admin' && (
+              <Badge variant="outline" className="ml-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
+                <Shield className="h-3 w-3 mr-1" /> Admin
+              </Badge>
+            )}
           </h1>
           <p className="text-muted-foreground">Monitor your services uptime and performance</p>
         </div>
@@ -88,9 +100,14 @@ export default function Dashboard() {
           <Button variant="outline" size="icon" onClick={toggleDarkMode}>
             {darkMode ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
           </Button>
-          <Button variant="outline" size="icon" onClick={() => navigate('/settings')}>
-            <Settings className="h-4 w-4" />
-          </Button>
+          
+          {/* Only show Settings button to admins */}
+          {userRole === 'admin' && (
+            <Button variant="outline" size="icon" onClick={() => navigate('/settings')}>
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
+          
           <Button variant="outline" size="icon" onClick={() => navigate('/notifications')}>
             <Bell className="h-4 w-4" />
           </Button>

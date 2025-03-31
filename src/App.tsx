@@ -18,17 +18,19 @@ import { ThemeProvider, useTheme } from "./providers/ThemeProvider";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { settings } = useTheme();
+  const { settings, darkMode } = useTheme();
   
   useEffect(() => {
-    // Check system preference for dark mode
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.documentElement.classList.add('dark');
-    }
-    
     // Update the page title from settings
     document.title = settings.appTitle;
-  }, [settings.appTitle]);
+    
+    // Ensure dark mode class is applied
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [settings.appTitle, darkMode]);
 
   return (
     <BrowserRouter>

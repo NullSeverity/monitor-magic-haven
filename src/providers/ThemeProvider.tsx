@@ -30,36 +30,26 @@ interface ThemeContextProps {
 const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [darkMode, setDarkMode] = useState(false);
-  const [theme, setTheme] = useState('default');
-  const [font, setFont] = useState('inter');
+  // Get initial dark mode from localStorage directly to avoid flash
+  const initialDarkMode = localStorage.getItem('darkMode') === 'true';
+  const [darkMode, setDarkMode] = useState(initialDarkMode);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'default');
+  const [font, setFont] = useState(() => localStorage.getItem('font') || 'inter');
 
-  // Initialize settings with a default allowIndexing value
-  const [settings, setSettings] = useState<Settings>({
-    theme: 'default',
-    font: 'inter',
-    appTitle: 'Uptime Monitor',
-    primaryColor: 'blue',
-    secondaryColor: 'green',
-    allowIndexing: true, // Default to allow indexing
+  // Initialize settings with stored values or defaults
+  const [settings, setSettings] = useState<Settings>(() => {
+    const storedSettings = localStorage.getItem('settings');
+    return storedSettings ? JSON.parse(storedSettings) : {
+      theme: 'default',
+      font: 'inter',
+      appTitle: 'Uptime Monitor',
+      primaryColor: 'blue',
+      secondaryColor: 'green',
+      allowIndexing: true,
+    };
   });
 
-  useEffect(() => {
-    const storedDarkMode = localStorage.getItem('darkMode') === 'true';
-    setDarkMode(storedDarkMode);
-
-    const storedTheme = localStorage.getItem('theme') || 'default';
-    setTheme(storedTheme);
-
-    const storedFont = localStorage.getItem('font') || 'inter';
-    setFont(storedFont);
-
-    const storedSettings = localStorage.getItem('settings');
-    if (storedSettings) {
-      setSettings(JSON.parse(storedSettings));
-    }
-  }, []);
-
+  // Apply dark mode when it changes
   useEffect(() => {
     localStorage.setItem('darkMode', String(darkMode));
     if (darkMode) {
@@ -69,6 +59,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [darkMode]);
 
+  // Apply theme when it changes
   useEffect(() => {
     localStorage.setItem('theme', theme);
     
@@ -102,6 +93,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [theme]);
 
+  // Apply font when it changes
   useEffect(() => {
     localStorage.setItem('font', font);
     document.documentElement.style.fontFamily = font;
@@ -111,6 +103,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     document.body.classList.add(`font-${font}`);
   }, [font]);
 
+  // Apply settings when they change
   useEffect(() => {
     localStorage.setItem('settings', JSON.stringify(settings));
     
@@ -137,7 +130,17 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     if (settings.secondaryColor) {
       document.documentElement.style.setProperty('--secondary', settings.secondaryColor);
     }
-  }, [settings]);
+    
+    // Apply theme from settings to ensure consistency
+    if (settings.theme && settings.theme !== theme) {
+      setTheme(settings.theme);
+    }
+    
+    // Apply font from settings to ensure consistency
+    if (settings.font && settings.font !== font) {
+      setFont(settings.font);
+    }
+  }, [settings, theme, font]);
 
   return (
     <ThemeContext.Provider value={{ darkMode, setDarkMode, theme, setTheme, font, setFont, settings, setSettings }}>

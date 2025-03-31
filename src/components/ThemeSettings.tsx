@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,9 +72,10 @@ const ThemeSettings = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="default">Default</SelectItem>
-            <SelectItem value="dark">Dark</SelectItem>
-            <SelectItem value="light">Light</SelectItem>
-            {/* Add more themes here */}
+            <SelectItem value="minimalist">Minimalist</SelectItem>
+            <SelectItem value="modern">Modern</SelectItem>
+            <SelectItem value="mechanical">Mechanical</SelectItem>
+            <SelectItem value="cyberpunk">Cyberpunk</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -86,9 +88,10 @@ const ThemeSettings = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="inter">Inter</SelectItem>
-            <SelectItem value="roboto">Roboto</SelectItem>
             <SelectItem value="poppins">Poppins</SelectItem>
-            {/* Add more fonts here */}
+            <SelectItem value="roboto-mono">Roboto Mono</SelectItem>
+            <SelectItem value="space-grotesk">Space Grotesk</SelectItem>
+            <SelectItem value="jetbrains-mono">JetBrains Mono</SelectItem>
           </SelectContent>
         </Select>
       </div>

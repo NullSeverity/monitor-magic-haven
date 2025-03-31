@@ -1,4 +1,9 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
+
+// Add these type exports
+export type ThemeOption = 'default' | 'minimalist' | 'modern' | 'mechanical' | 'cyberpunk';
+export type FontOption = 'inter' | 'poppins' | 'roboto-mono' | 'space-grotesk' | 'jetbrains-mono';
 
 interface Settings {
   theme: string;

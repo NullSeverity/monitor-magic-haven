@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Monitor } from "@/types/monitor";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function MonitorForm() {
   const [monitor, setMonitor] = useState<Partial<Monitor>>({
@@ -24,7 +24,9 @@ export default function MonitorForm() {
     status: 'pending',
     responseTime: 0,
     uptime: 0,
-    group: 'Default'
+    group: 'Default',
+    expectedString: '',
+    stringCheckEnabled: false
   });
   const [notifyOptions, setNotifyOptions] = useState({
     email: false,
@@ -38,14 +40,12 @@ export default function MonitorForm() {
   const isNewMonitor = id === 'new';
 
   useEffect(() => {
-    // Check authentication
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
 
-    // If editing an existing monitor, load its data
     if (!isNewMonitor) {
       const savedMonitors = localStorage.getItem('monitors');
       if (savedMonitors) {
@@ -54,7 +54,6 @@ export default function MonitorForm() {
         if (foundMonitor) {
           setMonitor(foundMonitor);
           
-          // Set notification options
           if (foundMonitor.notifications) {
             setNotifyOptions({
               email: foundMonitor.notifications.includes('email'),
@@ -74,7 +73,7 @@ export default function MonitorForm() {
     }
   }, [id, isNewMonitor, navigate, toast]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setMonitor(prev => ({ ...prev, [name]: value }));
   };
@@ -83,10 +82,13 @@ export default function MonitorForm() {
     setMonitor(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setMonitor(prev => ({ ...prev, [name]: checked }));
+  };
+
   const handleSave = () => {
     setLoading(true);
 
-    // Validate required fields
     if (!monitor.name) {
       toast({
         title: "Validation Error",
@@ -117,7 +119,6 @@ export default function MonitorForm() {
       return;
     }
 
-    // Save the notifications settings
     const notifications = [];
     if (notifyOptions.email) notifications.push('email');
     if (notifyOptions.telegram) notifications.push('telegram');
@@ -128,7 +129,6 @@ export default function MonitorForm() {
       const monitors = JSON.parse(savedMonitors);
 
       if (isNewMonitor) {
-        // Add new monitor
         const newId = monitors.length > 0 
           ? Math.max(...monitors.map((m: Monitor) => m.id)) + 1 
           : 1;
@@ -150,7 +150,6 @@ export default function MonitorForm() {
           description: "Monitor created successfully",
         });
       } else {
-        // Update existing monitor
         const updatedMonitors = monitors.map((m: Monitor) => 
           m.id === parseInt(id || '0') 
             ? { ...m, ...monitor, notifications }
@@ -262,16 +261,48 @@ export default function MonitorForm() {
                 </div>
 
                 {monitor.type === 'HTTP' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="url">URL</Label>
-                    <Input 
-                      id="url" 
-                      name="url" 
-                      value={monitor.url} 
-                      onChange={handleInputChange} 
-                      placeholder="https://example.com" 
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="url">URL</Label>
+                      <Input 
+                        id="url" 
+                        name="url" 
+                        value={monitor.url} 
+                        onChange={handleInputChange} 
+                        placeholder="https://example.com" 
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Checkbox 
+                          id="stringCheckEnabled" 
+                          checked={monitor.stringCheckEnabled} 
+                          onCheckedChange={(checked) => 
+                            handleCheckboxChange('stringCheckEnabled', checked === true)
+                          } 
+                        />
+                        <Label htmlFor="stringCheckEnabled">Check for specific string in response</Label>
+                      </div>
+                      
+                      {monitor.stringCheckEnabled && (
+                        <div className="pl-6">
+                          <Label htmlFor="expectedString">Expected String</Label>
+                          <Textarea 
+                            id="expectedString" 
+                            name="expectedString" 
+                            value={monitor.expectedString} 
+                            onChange={handleInputChange} 
+                            placeholder="Enter text that should appear in the response"
+                            className="mt-1"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            The monitor will be marked as down if this text is not found in the response
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
 
                 {(monitor.type === 'TCP' || monitor.type === 'PING') && (

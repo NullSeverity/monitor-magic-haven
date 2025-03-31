@@ -14,4 +14,6 @@ export interface Monitor {
   group?: string;
   retries?: number;
   notifications?: string[];
+  expectedString?: string;
+  stringCheckEnabled?: boolean;
 }

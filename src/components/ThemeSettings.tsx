@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChromePicker } from 'react-color';
-import { useTheme } from '@/providers/ThemeProvider';
+import { useTheme, Settings } from '@/providers/ThemeProvider';
 import { Switch } from "@/components/ui/switch";
 import { themeConfigurations, fontOptions } from '@/themes/themeConfigs';
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,10 +36,12 @@ const ThemeSettings = () => {
     if (value in themeConfigurations) {
       const recommendedFont = themeConfigurations[value as keyof typeof themeConfigurations].fonts.recommended;
       setFont(recommendedFont);
-      setSettings(prev => ({
-        ...prev,
+      // Fix: Convert the callback to a direct object update
+      const updatedSettings = {
+        ...settings,
         font: recommendedFont
-      }));
+      };
+      setSettings(updatedSettings);
     }
   };
 

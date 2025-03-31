@@ -127,7 +127,7 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
   );
 };
 
-const StatusBadge = ({ status }: { status: string }) => {
+const StatusBadge = ({ status }: { status: 'up' | 'down' | 'pending' }) => {
   if (status === 'up') {
     return <Badge className="bg-green-500">Up</Badge>;
   } else if (status === 'pending') {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,7 @@ export default function Dashboard() {
 
     // Update monitor status to pending during check
     const updatedMonitors = monitors.map(m => 
-      m.id === monitorId ? { ...m, status: 'pending', lastChecked: new Date().toISOString() } : m
+      m.id === monitorId ? { ...m, status: 'pending' as const, lastChecked: new Date().toISOString() } : m
     );
     setMonitors(updatedMonitors);
     localStorage.setItem('monitors', JSON.stringify(updatedMonitors));
@@ -93,7 +94,7 @@ export default function Dashboard() {
     // Simulate check process - in a real app, this would be an actual HTTP request
     setTimeout(() => {
       // Generate a random status (up/down) for simulation
-      const newStatus = Math.random() > 0.2 ? 'up' : 'down';
+      const newStatus = Math.random() > 0.2 ? 'up' as const : 'down' as const;
       const responseTime = newStatus === 'up' ? Math.floor(Math.random() * 500) + 50 : 0;
       
       const checkedMonitors = updatedMonitors.map(m => 

@@ -1,17 +1,25 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Server, Wifi, Clock, Bell } from "lucide-react";
+import { Activity, Server, Wifi, Clock, Bell, ChevronDown, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Monitor } from "@/types/monitor";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface MonitorCardProps {
   monitor: Monitor;
   onEdit: () => void;
+  onCheck: () => void;
 }
 
-const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit }) => {
+const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) => {
+  const [isChecking, setIsChecking] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  
   const getStatusIcon = () => {
     switch (monitor.type) {
       case 'HTTP':
@@ -25,61 +33,95 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit }) => {
     }
   };
 
+  const handleManualCheck = async () => {
+    setIsChecking(true);
+    onCheck();
+    
+    // Simulate check process
+    setTimeout(() => {
+      setIsChecking(false);
+      toast({
+        title: "Check Complete",
+        description: `Status check for ${monitor.name} completed.`,
+      });
+    }, 2000);
+  };
+
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="py-3 px-4">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-xl">{monitor.name}</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg flex items-center">
+              {monitor.name}
+              {monitor.group && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  {monitor.group}
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription className="text-xs">
               {monitor.type === 'HTTP' && monitor.url}
               {monitor.type === 'TCP' && `${monitor.host}:${monitor.port}`}
               {monitor.type === 'PING' && monitor.host}
             </CardDescription>
           </div>
           <div className="flex items-center">
-            {monitor.group && (
-              <Badge variant="outline" className="mr-2">
-                {monitor.group}
-              </Badge>
-            )}
             <StatusBadge status={monitor.status} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onEdit}>View Details</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleManualCheck} disabled={isChecking}>
+                  {isChecking ? "Checking..." : "Check Now"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Response Time</p>
-            <p className="font-medium">{monitor.status === 'up' ? `${monitor.responseTime} ms` : 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Uptime</p>
-            <p className="font-medium">{monitor.uptime}%</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Check Interval</p>
-            <p className="font-medium flex items-center">
-              <Clock className="h-3 w-3 mr-1" />
+      <CardContent className="py-2 px-4">
+        <div className="flex justify-between items-center text-sm">
+          <div className="flex items-center">
+            <span className="text-muted-foreground mr-4">
+              {monitor.status === 'up' ? `${monitor.responseTime} ms` : 'N/A'}
+            </span>
+            <span className="text-muted-foreground">
+              <Clock className="h-3 w-3 inline mr-1" />
               {monitor.interval}s
-            </p>
+            </span>
+          </div>
+          <div className="flex items-center">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-7 px-2 mr-1"
+              onClick={handleManualCheck} 
+              disabled={isChecking}
+            >
+              <RefreshCw className={`h-3 w-3 ${isChecking ? 'animate-spin' : ''}`} />
+              <span className="ml-1 text-xs">{isChecking ? 'Checking' : 'Check'}</span>
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 px-2" onClick={onEdit}>
+              Details
+            </Button>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between pt-0">
-        <div className="flex items-center text-xs text-muted-foreground">
-          {getStatusIcon()}
-          {monitor.type}
-          {monitor.notifications && monitor.notifications.length > 0 && (
-            <span className="ml-2 flex items-center">
-              <Bell className="h-3 w-3 mr-1" />
-              {monitor.notifications.length} alert{monitor.notifications.length > 1 ? 's' : ''}
-            </span>
-          )}
+      <CardFooter className="py-2 px-4 border-t">
+        <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
+          <div>
+            {getStatusIcon()}
+            {monitor.type}
+          </div>
+          <div>
+            {monitor.lastChecked && `Last checked: ${new Date(monitor.lastChecked).toLocaleTimeString()}`}
+          </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={onEdit}>
-          View Details
-        </Button>
       </CardFooter>
     </Card>
   );

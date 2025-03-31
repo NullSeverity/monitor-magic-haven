@@ -78,6 +78,44 @@ export default function Dashboard() {
     });
   };
 
+  const handleManualCheck = (monitorId: number) => {
+    // Find the monitor to check
+    const monitorToCheck = monitors.find(m => m.id === monitorId);
+    if (!monitorToCheck) return;
+
+    // Update monitor status to pending during check
+    const updatedMonitors = monitors.map(m => 
+      m.id === monitorId ? { ...m, status: 'pending', lastChecked: new Date().toISOString() } : m
+    );
+    setMonitors(updatedMonitors);
+    localStorage.setItem('monitors', JSON.stringify(updatedMonitors));
+
+    // Simulate check process - in a real app, this would be an actual HTTP request
+    setTimeout(() => {
+      // Generate a random status (up/down) for simulation
+      const newStatus = Math.random() > 0.2 ? 'up' : 'down';
+      const responseTime = newStatus === 'up' ? Math.floor(Math.random() * 500) + 50 : 0;
+      
+      const checkedMonitors = updatedMonitors.map(m => 
+        m.id === monitorId ? { 
+          ...m, 
+          status: newStatus, 
+          responseTime: responseTime,
+          lastChecked: new Date().toISOString()
+        } : m
+      );
+      
+      setMonitors(checkedMonitors);
+      localStorage.setItem('monitors', JSON.stringify(checkedMonitors));
+      
+      toast({
+        title: `Monitor ${newStatus.toUpperCase()}`,
+        description: `${monitorToCheck.name} is ${newStatus}`,
+        variant: newStatus === 'up' ? 'default' : 'destructive',
+      });
+    }, 2000);
+  };
+
   // Get unique groups for filtering
   const groups = ['All', ...new Set(monitors.map(m => m.group))];
 
@@ -190,28 +228,48 @@ export default function Dashboard() {
         <TabsContent value="all" className="mt-4">
           <div className="grid grid-cols-1 gap-4">
             {monitors.map(monitor => (
-              <MonitorCard key={monitor.id} monitor={monitor} onEdit={() => navigate(`/monitor/${monitor.id}`)} />
+              <MonitorCard 
+                key={monitor.id} 
+                monitor={monitor} 
+                onEdit={() => navigate(`/monitor/${monitor.id}`)} 
+                onCheck={() => handleManualCheck(monitor.id)}
+              />
             ))}
           </div>
         </TabsContent>
         <TabsContent value="http" className="mt-4">
           <div className="grid grid-cols-1 gap-4">
             {monitors.filter(m => m.type === 'HTTP').map(monitor => (
-              <MonitorCard key={monitor.id} monitor={monitor} onEdit={() => navigate(`/monitor/${monitor.id}`)} />
+              <MonitorCard 
+                key={monitor.id} 
+                monitor={monitor} 
+                onEdit={() => navigate(`/monitor/${monitor.id}`)} 
+                onCheck={() => handleManualCheck(monitor.id)}
+              />
             ))}
           </div>
         </TabsContent>
         <TabsContent value="tcp" className="mt-4">
           <div className="grid grid-cols-1 gap-4">
             {monitors.filter(m => m.type === 'TCP').map(monitor => (
-              <MonitorCard key={monitor.id} monitor={monitor} onEdit={() => navigate(`/monitor/${monitor.id}`)} />
+              <MonitorCard 
+                key={monitor.id} 
+                monitor={monitor} 
+                onEdit={() => navigate(`/monitor/${monitor.id}`)} 
+                onCheck={() => handleManualCheck(monitor.id)}
+              />
             ))}
           </div>
         </TabsContent>
         <TabsContent value="ping" className="mt-4">
           <div className="grid grid-cols-1 gap-4">
             {monitors.filter(m => m.type === 'PING').map(monitor => (
-              <MonitorCard key={monitor.id} monitor={monitor} onEdit={() => navigate(`/monitor/${monitor.id}`)} />
+              <MonitorCard 
+                key={monitor.id} 
+                monitor={monitor} 
+                onEdit={() => navigate(`/monitor/${monitor.id}`)} 
+                onCheck={() => handleManualCheck(monitor.id)}
+              />
             ))}
           </div>
         </TabsContent>

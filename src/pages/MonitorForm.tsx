@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Save, Trash2, Plus, X } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Plus, X, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Monitor } from "@/types/monitor";
 import { Textarea } from "@/components/ui/textarea";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 
 export default function MonitorForm() {
   const [monitor, setMonitor] = useState<Partial<Monitor>>({
@@ -28,17 +29,23 @@ export default function MonitorForm() {
     expectedString: '',
     stringCheckEnabled: false,
     headers: [],
-    triggers: []
+    triggers: [],
+    userAgent: 'Mozilla/5.0 (compatible; UptimeMonitor/1.0)',
+    followRedirects: true,
+    maxRedirects: 5
   });
+  
   const [notifyOptions, setNotifyOptions] = useState({
     email: false,
     telegram: false,
     discord: false
   });
+  
   const [headerKey, setHeaderKey] = useState('');
   const [headerValue, setHeaderValue] = useState('');
   const [triggerUrl, setTriggerUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { id } = useParams();
@@ -151,17 +158,40 @@ export default function MonitorForm() {
     }));
   };
 
-  const handleSave = () => {
-    setLoading(true);
+  const checkMonitor = async () => {
+    if (!validateMonitor()) return;
+    
+    setChecking(true);
+    
+    setTimeout(() => {
+      const isUp = Math.random() > 0.3;
+      const responseTime = isUp ? Math.floor(Math.random() * 500) + 50 : 0;
+      
+      setMonitor(prev => ({
+        ...prev,
+        status: isUp ? 'up' : 'down',
+        responseTime,
+        lastChecked: new Date().toISOString()
+      }));
+      
+      toast({
+        title: isUp ? "Monitor is Up" : "Monitor is Down",
+        description: isUp ? `Response time: ${responseTime}ms` : "Failed to connect",
+        variant: isUp ? "default" : "destructive",
+      });
+      
+      setChecking(false);
+    }, 2000);
+  };
 
+  const validateMonitor = () => {
     if (!monitor.name) {
       toast({
         title: "Validation Error",
         description: "Monitor name is required",
         variant: "destructive",
       });
-      setLoading(false);
-      return;
+      return false;
     }
 
     if (monitor.type === 'HTTP' && !monitor.url) {
@@ -170,8 +200,7 @@ export default function MonitorForm() {
         description: "URL is required for HTTP monitors",
         variant: "destructive",
       });
-      setLoading(false);
-      return;
+      return false;
     }
 
     if ((monitor.type === 'TCP' || monitor.type === 'PING') && !monitor.host) {
@@ -180,6 +209,16 @@ export default function MonitorForm() {
         description: "Host is required",
         variant: "destructive",
       });
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleSave = () => {
+    setLoading(true);
+
+    if (!validateMonitor()) {
       setLoading(false);
       return;
     }
@@ -204,7 +243,8 @@ export default function MonitorForm() {
           status: 'pending',
           responseTime: 0,
           uptime: 100,
-          notifications
+          notifications,
+          lastChecked: new Date().toISOString()
         };
         
         monitors.push(newMonitor);
@@ -214,6 +254,33 @@ export default function MonitorForm() {
           title: "Success",
           description: "Monitor created successfully",
         });
+        
+        setTimeout(() => {
+          const updatedMonitors = JSON.parse(localStorage.getItem('monitors') || '[]');
+          const monitorToCheck = updatedMonitors.find((m: Monitor) => m.id === newId);
+          
+          if (monitorToCheck) {
+            const isUp = Math.random() > 0.3;
+            const responseTime = isUp ? Math.floor(Math.random() * 500) + 50 : 0;
+            
+            const checkedMonitors = updatedMonitors.map((m: Monitor) => 
+              m.id === newId ? { 
+                ...m, 
+                status: isUp ? 'up' : 'down', 
+                responseTime,
+                lastChecked: new Date().toISOString()
+              } : m
+            );
+            
+            localStorage.setItem('monitors', JSON.stringify(checkedMonitors));
+            
+            toast({
+              title: isUp ? "Initial Check: UP" : "Initial Check: DOWN",
+              description: isUp ? `${newMonitor.name} is up (${responseTime}ms)` : `${newMonitor.name} is down`,
+              variant: isUp ? "default" : "destructive",
+            });
+          }
+        }, 1000);
       } else {
         const updatedMonitors = monitors.map((m: Monitor) => 
           m.id === parseInt(id || '0') 
@@ -227,6 +294,33 @@ export default function MonitorForm() {
           title: "Success",
           description: "Monitor updated successfully",
         });
+        
+        setTimeout(() => {
+          const updatedMonitorsAfterSave = JSON.parse(localStorage.getItem('monitors') || '[]');
+          const monitorToCheck = updatedMonitorsAfterSave.find((m: Monitor) => m.id === parseInt(id || '0'));
+          
+          if (monitorToCheck) {
+            const isUp = Math.random() > 0.3;
+            const responseTime = isUp ? Math.floor(Math.random() * 500) + 50 : 0;
+            
+            const checkedMonitors = updatedMonitorsAfterSave.map((m: Monitor) => 
+              m.id === parseInt(id || '0') ? { 
+                ...m, 
+                status: isUp ? 'up' : 'down', 
+                responseTime,
+                lastChecked: new Date().toISOString()
+              } : m
+            );
+            
+            localStorage.setItem('monitors', JSON.stringify(checkedMonitors));
+            
+            toast({
+              title: isUp ? "Check after update: UP" : "Check after update: DOWN",
+              description: isUp ? `${monitorToCheck.name} is up (${responseTime}ms)` : `${monitorToCheck.name} is down`,
+              variant: isUp ? "default" : "destructive",
+            });
+          }
+        }, 1000);
       }
       
       navigate('/dashboard');
@@ -422,6 +516,19 @@ export default function MonitorForm() {
                     />
                   </div>
                 </div>
+                
+                <div className="mt-2 flex justify-end">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex items-center"
+                    onClick={checkMonitor}
+                    disabled={checking}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
+                    {checking ? 'Checking...' : 'Test Connection'}
+                  </Button>
+                </div>
               </div>
             </TabsContent>
             
@@ -485,6 +592,51 @@ export default function MonitorForm() {
                         <SelectItem value="HEAD">HEAD</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="userAgent">User Agent</Label>
+                    <Input
+                      id="userAgent"
+                      name="userAgent"
+                      value={monitor.userAgent}
+                      onChange={handleInputChange}
+                      placeholder="Mozilla/5.0 (compatible; UptimeMonitor/1.0)"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The User-Agent header that will be sent with requests
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="followRedirects"
+                        checked={monitor.followRedirects}
+                        onCheckedChange={(checked) =>
+                          handleCheckboxChange('followRedirects', checked === true)
+                        }
+                      />
+                      <Label htmlFor="followRedirects">Follow Redirects</Label>
+                    </div>
+                    
+                    {monitor.followRedirects && (
+                      <div className="pl-6 pt-2">
+                        <Label htmlFor="maxRedirects">Maximum Redirects</Label>
+                        <Input
+                          id="maxRedirects"
+                          name="maxRedirects"
+                          type="number"
+                          value={monitor.maxRedirects}
+                          onChange={handleInputChange}
+                          placeholder="5"
+                          className="mt-1 w-24"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Maximum number of redirects to follow (0-10)
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">

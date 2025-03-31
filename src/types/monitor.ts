@@ -18,4 +18,8 @@ export interface Monitor {
   stringCheckEnabled?: boolean;
   headers?: { key: string; value: string }[];
   triggers?: string[];
+  userAgent?: string;
+  followRedirects?: boolean;
+  maxRedirects?: number;
+  lastChecked?: string;
 }

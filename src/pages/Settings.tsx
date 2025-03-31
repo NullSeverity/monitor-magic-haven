@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Download, Upload, Plus, X, UserPlus, Palette } from "lucide-react";
+import { ArrowLeft, Save, Download, Upload, Plus, X, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import ThemeSettings from "@/components/ThemeSettings";
 
 interface User {
   email: string;
@@ -59,16 +58,19 @@ export default function Settings() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check authentication
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
 
+    // Load saved settings
     const savedSettings = localStorage.getItem('settings');
     if (savedSettings) {
       setSettings(JSON.parse(savedSettings));
     } else {
+      // Generate random API token if not exists
       setSettings(prev => ({
         ...prev,
         api: {
@@ -78,6 +80,7 @@ export default function Settings() {
       }));
     }
     
+    // Load current user info
     const userData = localStorage.getItem('user');
     if (userData) {
       const user = JSON.parse(userData);
@@ -87,9 +90,11 @@ export default function Settings() {
       }));
     }
     
+    // Load all admin users
     const savedUsers = localStorage.getItem('users');
     if (savedUsers) {
       const parsedUsers = JSON.parse(savedUsers);
+      // Filter to show only admin users
       const adminUsers = parsedUsers.filter((user: User) => user.role === 'admin');
       setUsers(adminUsers);
     }
@@ -160,13 +165,16 @@ export default function Settings() {
 
   const handleExport = () => {
     try {
+      // Get all data
       const exportData = {
         monitors: JSON.parse(localStorage.getItem('monitors') || '[]'),
         settings: settings
       };
       
+      // Convert to JSON string
       const jsonString = JSON.stringify(exportData, null, 2);
       
+      // Create a blob and download link
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       
@@ -176,6 +184,7 @@ export default function Settings() {
       document.body.appendChild(a);
       a.click();
       
+      // Cleanup
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
@@ -234,6 +243,7 @@ export default function Settings() {
     setLoading(true);
     
     try {
+      // Validate input
       if (userInfo.newPassword && userInfo.newPassword !== userInfo.confirmPassword) {
         toast({
           title: "Error",
@@ -244,6 +254,7 @@ export default function Settings() {
         return;
       }
       
+      // Get current user data
       const userData = localStorage.getItem('user');
       if (!userData) {
         toast({
@@ -257,6 +268,7 @@ export default function Settings() {
       
       const currentUser = JSON.parse(userData);
       
+      // Validate current password
       if (userInfo.currentPassword && userInfo.currentPassword !== currentUser.password) {
         toast({
           title: "Error",
@@ -267,6 +279,7 @@ export default function Settings() {
         return;
       }
       
+      // Update user data
       const updateData = {
         ...currentUser,
         email: userInfo.email
@@ -278,6 +291,7 @@ export default function Settings() {
       
       localStorage.setItem('user', JSON.stringify(updateData));
       
+      // Also update in users array
       const savedUsers = localStorage.getItem('users') || '[]';
       const allUsers = JSON.parse(savedUsers);
       
@@ -293,6 +307,7 @@ export default function Settings() {
         description: "User profile updated successfully",
       });
       
+      // Reset password fields
       setUserInfo(prev => ({
         ...prev,
         currentPassword: '',
@@ -314,6 +329,7 @@ export default function Settings() {
     setLoading(true);
     
     try {
+      // Validate input
       if (!newAdminUser.email || !newAdminUser.password) {
         toast({
           title: "Error",
@@ -334,6 +350,7 @@ export default function Settings() {
         return;
       }
       
+      // Check if email already exists
       const savedUsers = localStorage.getItem('users') || '[]';
       const allUsers = JSON.parse(savedUsers);
       
@@ -347,6 +364,7 @@ export default function Settings() {
         return;
       }
       
+      // Add new admin user
       const newUser = {
         email: newAdminUser.email,
         password: newAdminUser.password,
@@ -356,6 +374,7 @@ export default function Settings() {
       const updatedUsers = [...allUsers, newUser];
       localStorage.setItem('users', JSON.stringify(updatedUsers));
       
+      // Update local state
       setUsers(updatedUsers.filter((user: User) => user.role === 'admin'));
       
       toast({
@@ -363,6 +382,7 @@ export default function Settings() {
         description: "New admin user created successfully",
       });
       
+      // Reset form
       setNewAdminUser({
         email: '',
         password: '',
@@ -385,6 +405,7 @@ export default function Settings() {
         const savedUsers = localStorage.getItem('users') || '[]';
         const allUsers = JSON.parse(savedUsers);
         
+        // Don't allow removing the currently logged in user
         const currentUserData = localStorage.getItem('user');
         if (currentUserData) {
           const currentUser = JSON.parse(currentUserData);
@@ -401,6 +422,7 @@ export default function Settings() {
         const updatedUsers = allUsers.filter((user: User) => user.email !== email);
         localStorage.setItem('users', JSON.stringify(updatedUsers));
         
+        // Update local state
         setUsers(updatedUsers.filter((user: User) => user.role === 'admin'));
         
         toast({
@@ -442,9 +464,6 @@ export default function Settings() {
               <TabsTrigger value="api">API</TabsTrigger>
               <TabsTrigger value="backup">Backup</TabsTrigger>
               <TabsTrigger value="admin">Admin</TabsTrigger>
-              <TabsTrigger value="appearance" className="flex items-center">
-                <Palette className="h-4 w-4 mr-1" /> Appearance
-              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="email" className="space-y-4">
@@ -777,17 +796,6 @@ export default function Settings() {
                     </Button>
                   </div>
                 </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="appearance" className="space-y-4">
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Appearance Settings</h3>
-                <p className="text-muted-foreground">
-                  Customize the look and feel of your monitoring dashboard
-                </p>
-                
-                <ThemeSettings />
               </div>
             </TabsContent>
           </Tabs>

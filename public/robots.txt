@@ -1,11 +1,3 @@
-
-# Default robots.txt
-# Note: This will be overridden by runtime settings in the app
-
-User-agent: *
-Allow: /
-
-# Allow common bots
 User-agent: Googlebot
 Allow: /
 
@@ -16,4 +8,7 @@ User-agent: Twitterbot
 Allow: /
 
 User-agent: facebookexternalhit
+Allow: /
+
+User-agent: *
 Allow: /

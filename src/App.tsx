@@ -13,61 +13,35 @@ import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 import AdminGuard from "./components/AdminGuard";
 import { useEffect } from "react";
-import { ThemeProvider, useTheme } from "./providers/ThemeProvider";
 
 const queryClient = new QueryClient();
 
-const AppContent = () => {
-  const { settings, darkMode, theme } = useTheme();
-  
-  useEffect(() => {
-    // Update the page title from settings
-    document.title = settings.appTitle;
-    
-    // Ensure dark mode class is applied
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
-    // Ensure theme class is applied
-    const themeOptions = ['default', 'minimalist', 'modern', 'mechanical', 'cyberpunk'];
-    themeOptions.forEach(t => {
-      if (t !== theme) {
-        document.documentElement.classList.remove(t);
-      }
-    });
-    document.documentElement.classList.add(theme);
-    
-  }, [settings.appTitle, darkMode, theme]);
-
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/monitor/:id" element={<MonitorForm />} />
-        <Route path="/settings" element={<AdminGuard><Settings /></AdminGuard>} />
-        <Route path="/notifications" element={<Notifications />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
-  );
-};
-
 const App = () => {
+  useEffect(() => {
+    // Check system preference for dark mode
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AppContent />
-        </TooltipProvider>
-      </ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/monitor/:id" element={<MonitorForm />} />
+            <Route path="/settings" element={<AdminGuard><Settings /></AdminGuard>} />
+            <Route path="/notifications" element={<Notifications />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };

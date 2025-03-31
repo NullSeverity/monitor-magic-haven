@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Server, Wifi, Clock, Bell, ChevronDown, RefreshCw, ExternalLink, Heart, Gauge, Pulse } from "lucide-react";
+import { Activity, Server, Wifi, Clock, Bell, ChevronDown, RefreshCw, ExternalLink, Heart, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Monitor } from "@/types/monitor";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -25,14 +24,12 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Initialize or get status history from localStorage
     const storageKey = `status_history_${monitor.id}`;
     const storedHistory = localStorage.getItem(storageKey);
     
     if (storedHistory) {
       setStatusHistory(JSON.parse(storedHistory));
     } else {
-      // Initialize with current status repeated a few times for visualization
       const initialHistory = Array(30).fill(monitor.status);
       setStatusHistory(initialHistory);
       localStorage.setItem(storageKey, JSON.stringify(initialHistory));
@@ -40,18 +37,15 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
   }, [monitor.id, monitor.status]);
 
   useEffect(() => {
-    // Update history when monitor status changes
     if (monitor.status && monitor.lastChecked) {
       updateStatusHistory(monitor.status);
     }
   }, [monitor.lastChecked]);
 
-  // Timer for showing time since last check
   useEffect(() => {
     if (!monitor.lastChecked) return;
     
     const updateTimers = () => {
-      // Calculate time since last check
       const lastChecked = new Date(monitor.lastChecked || new Date());
       const now = new Date();
       const diffMs = now.getTime() - lastChecked.getTime();
@@ -65,16 +59,13 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
         setTimeSinceLastCheck(`${Math.floor(diffSecs / 3600)}h ago`);
       }
       
-      // Calculate progress towards next check
       const intervalSecs = monitor.interval;
       const progress = Math.min(100, (diffSecs / intervalSecs) * 100);
       setNextCheckProgress(progress);
     };
     
-    // Initial update
     updateTimers();
     
-    // Set interval for updating the timer
     const timer = setInterval(updateTimers, 1000);
     
     return () => clearInterval(timer);
@@ -120,7 +111,6 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
     setIsChecking(true);
     onCheck();
     
-    // Simulate check process
     setTimeout(() => {
       setIsChecking(false);
       toast({
@@ -130,14 +120,12 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
     }, 2000);
   };
 
-  // Determine if a string check has failed
   const hasStringCheckFailed = () => {
     return monitor.stringCheckEnabled && 
            monitor.stringCheckResult === false && 
            monitor.status === 'up';
   };
 
-  // Get the combined status considering both HTTP status and string check
   const getEffectiveStatus = () => {
     if (hasStringCheckFailed()) {
       return 'down';
@@ -191,7 +179,6 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
         </div>
       </CardHeader>
 
-      {/* Status History Metrics Bar */}
       <div className="px-4 py-1 flex space-x-0.5">
         {statusHistory.map((status, index) => (
           <div 
@@ -206,7 +193,6 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
         ))}
       </div>
 
-      {/* Progress bar for next check */}
       <div className="px-4 pt-2">
         <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
           <span>Last check: {timeSinceLastCheck}</span>
@@ -266,7 +252,7 @@ const MonitorCard: React.FC<MonitorCardProps> = ({ monitor, onEdit, onCheck }) =
             )}
           </div>
           <div className="flex items-center">
-            <Pulse className="h-3 w-3 mr-1 animate-pulse" />
+            <Activity className="h-3 w-3 mr-1 animate-pulse" />
             <span>Auto-checking every {monitor.interval}s</span>
           </div>
         </div>

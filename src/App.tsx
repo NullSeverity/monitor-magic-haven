@@ -18,7 +18,7 @@ import { ThemeProvider, useTheme } from "./providers/ThemeProvider";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { settings, darkMode } = useTheme();
+  const { settings, darkMode, theme } = useTheme();
   
   useEffect(() => {
     // Update the page title from settings
@@ -30,7 +30,17 @@ const AppContent = () => {
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [settings.appTitle, darkMode]);
+    
+    // Ensure theme class is applied
+    const themeOptions = ['default', 'minimalist', 'modern', 'mechanical', 'cyberpunk'];
+    themeOptions.forEach(t => {
+      if (t !== theme) {
+        document.documentElement.classList.remove(t);
+      }
+    });
+    document.documentElement.classList.add(theme);
+    
+  }, [settings.appTitle, darkMode, theme]);
 
   return (
     <BrowserRouter>

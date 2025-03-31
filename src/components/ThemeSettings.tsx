@@ -14,7 +14,7 @@ interface ThemeSettingsProps {
 }
 
 const ThemeSettings = () => {
-  const { theme, setTheme, font, setFont, settings, setSettings } = useTheme();
+  const { darkMode, setDarkMode, theme, setTheme, font, setFont, settings, setSettings } = useTheme();
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSettings({
@@ -36,12 +36,11 @@ const ThemeSettings = () => {
     if (value in themeConfigurations) {
       const recommendedFont = themeConfigurations[value as keyof typeof themeConfigurations].fonts.recommended;
       setFont(recommendedFont);
-      // Fix: Convert the callback to a direct object update
-      const updatedSettings = {
+      setSettings({
         ...settings,
+        theme: value,
         font: recommendedFont
-      };
-      setSettings(updatedSettings);
+      });
     }
   };
 
@@ -58,7 +57,6 @@ const ThemeSettings = () => {
       ...settings,
       primaryColor: color.hex
     });
-    document.documentElement.style.setProperty('--primary', color.hex);
   };
 
   const handleSecondaryColorChange = (color: any) => {
@@ -66,7 +64,6 @@ const ThemeSettings = () => {
       ...settings,
       secondaryColor: color.hex
     });
-    document.documentElement.style.setProperty('--secondary', color.hex);
   };
 
   const handleAllowIndexingChange = (checked: boolean) => {
@@ -76,6 +73,10 @@ const ThemeSettings = () => {
     });
   };
 
+  const handleDarkModeChange = (checked: boolean) => {
+    setDarkMode(checked);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -83,6 +84,21 @@ const ThemeSettings = () => {
         <p className="text-sm text-muted-foreground">
           Customize the appearance of the application
         </p>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium">Dark Mode</div>
+            <div className="text-xs text-muted-foreground">
+              Enable dark mode for the application
+            </div>
+          </div>
+          <Switch 
+            checked={darkMode}
+            onCheckedChange={handleDarkModeChange}
+          />
+        </div>
       </div>
       
       <div className="space-y-4">

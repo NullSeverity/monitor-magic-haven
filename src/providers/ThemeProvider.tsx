@@ -90,6 +90,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       root.style.setProperty('--accent-foreground', config.colors.accentForeground);
       root.style.setProperty('--sidebar-background', config.colors.sidebar);
       root.style.setProperty('--sidebar-foreground', config.colors.sidebarForeground);
+      
+      // Set primary and secondary colors explicitly
+      root.style.setProperty('--primary', config.colors.primary);
+      root.style.setProperty('--secondary', config.colors.secondary);
     }
   }, [theme]);
 
@@ -122,7 +126,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       robotsMetaTag.setAttribute('content', 'noindex, nofollow');
     }
     
-    // Apply custom colors from settings
+    // Apply custom colors from settings if they exist
     if (settings.primaryColor) {
       document.documentElement.style.setProperty('--primary', settings.primaryColor);
     }
@@ -131,12 +135,11 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       document.documentElement.style.setProperty('--secondary', settings.secondaryColor);
     }
     
-    // Apply theme from settings to ensure consistency
+    // Sync settings with state
     if (settings.theme && settings.theme !== theme) {
       setTheme(settings.theme);
     }
     
-    // Apply font from settings to ensure consistency
     if (settings.font && settings.font !== font) {
       setFont(settings.font);
     }

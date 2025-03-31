@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Save, Download, Upload, Plus, X, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ThemeSettings from '@/components/ThemeSettings';
 
 interface User {
   email: string;
@@ -464,6 +465,7 @@ export default function Settings() {
               <TabsTrigger value="api">API</TabsTrigger>
               <TabsTrigger value="backup">Backup</TabsTrigger>
               <TabsTrigger value="admin">Admin</TabsTrigger>
+              <TabsTrigger value="theme">Theme</TabsTrigger>
             </TabsList>
             
             <TabsContent value="email" className="space-y-4">
@@ -797,6 +799,10 @@ export default function Settings() {
                   </div>
                 </div>
               </div>
+            </TabsContent>
+            
+            <TabsContent value="theme" className="space-y-4">
+              <ThemeSettings />
             </TabsContent>
           </Tabs>
         </CardContent>

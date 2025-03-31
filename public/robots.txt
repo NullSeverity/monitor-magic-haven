@@ -1,14 +1,6 @@
-User-agent: Googlebot
-Allow: /
 
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# Default: Allow all crawlers
 User-agent: *
 Allow: /
+
+# When noIndex is enabled via settings, this will be overridden by meta robots tag

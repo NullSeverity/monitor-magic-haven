@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,16 +13,22 @@ import NotFound from "./pages/NotFound";
 import AdminGuard from "./components/AdminGuard";
 import { useEffect } from "react";
 import { ThemeProvider } from "./providers/ThemeProvider";
+import { useTheme } from "./providers/ThemeProvider";
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  const { settings } = useTheme();
+  
   useEffect(() => {
     // Check system preference for dark mode
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       document.documentElement.classList.add('dark');
     }
-  }, []);
+    
+    // Update the page title from settings
+    document.title = settings.appTitle;
+  }, [settings.appTitle]);
 
   return (
     <QueryClientProvider client={queryClient}>

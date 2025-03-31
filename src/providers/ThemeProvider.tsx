@@ -1,79 +1,110 @@
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-
-export type ThemeOption = 'default' | 'minimalist' | 'modern' | 'mechanical' | 'cyberpunk';
-export type FontOption = 'inter' | 'poppins' | 'roboto-mono' | 'space-grotesk' | 'jetbrains-mono';
-
-interface ThemeSettings {
-  theme: ThemeOption;
-  font: FontOption;
+interface Settings {
+  theme: string;
+  font: string;
   appTitle: string;
-  monitorNamePrefix: string;
   primaryColor: string;
   secondaryColor: string;
+  allowIndexing: boolean; // New setting for controlling indexing
 }
 
-interface ThemeContextType {
-  settings: ThemeSettings;
-  updateSettings: (settings: Partial<ThemeSettings>) => void;
-  resetToDefaults: () => void;
+interface ThemeContextProps {
+  darkMode: boolean;
+  setDarkMode: (darkMode: boolean) => void;
+  theme: string;
+  setTheme: (theme: string) => void;
+  font: string;
+  setFont: (font: string) => void;
+  settings: Settings;
+  setSettings: (settings: Settings) => void;
 }
 
-const defaultSettings: ThemeSettings = {
-  theme: 'default',
-  font: 'inter',
-  appTitle: 'Uptime Monitor',
-  monitorNamePrefix: 'Monitor',
-  primaryColor: 'hsl(222.2, 47.4%, 11.2%)',
-  secondaryColor: 'hsl(210, 40%, 96.1%)'
-};
+const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
 
-const ThemeContext = createContext<ThemeContextType>({
-  settings: defaultSettings,
-  updateSettings: () => {},
-  resetToDefaults: () => {}
-});
+export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  const [darkMode, setDarkMode] = useState(false);
+  const [theme, setTheme] = useState('default');
+  const [font, setFont] = useState('inter');
 
-export const useTheme = () => useContext(ThemeContext);
-
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = useState<ThemeSettings>(defaultSettings);
+  // Initialize settings with a default allowIndexing value
+  const [settings, setSettings] = useState<Settings>({
+    theme: 'default',
+    font: 'inter',
+    appTitle: 'Uptime Monitor',
+    primaryColor: 'blue',
+    secondaryColor: 'green',
+    allowIndexing: true, // Default to allow indexing
+  });
 
   useEffect(() => {
-    // Load saved theme settings from localStorage
-    const savedSettings = localStorage.getItem('themeSettings');
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+    const storedDarkMode = localStorage.getItem('darkMode') === 'true';
+    setDarkMode(storedDarkMode);
+
+    const storedTheme = localStorage.getItem('theme') || 'default';
+    setTheme(storedTheme);
+
+    const storedFont = localStorage.getItem('font') || 'inter';
+    setFont(storedFont);
+
+    const storedSettings = localStorage.getItem('settings');
+    if (storedSettings) {
+      setSettings(JSON.parse(storedSettings));
     }
   }, []);
 
   useEffect(() => {
-    // Apply theme settings when they change
-    document.documentElement.setAttribute('data-theme', settings.theme);
-    document.documentElement.setAttribute('data-font', settings.font);
-    
-    // Apply primary and secondary colors as CSS variables
-    document.documentElement.style.setProperty('--primary-color', settings.primaryColor);
-    document.documentElement.style.setProperty('--secondary-color', settings.secondaryColor);
-    
-    // Save settings to localStorage
-    localStorage.setItem('themeSettings', JSON.stringify(settings));
+    localStorage.setItem('darkMode', String(darkMode));
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    document.documentElement.className = theme; // Set theme as class on html element
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('font', font);
+    document.documentElement.style.fontFamily = font; // Set font as inline style
+  }, [font]);
+
+  useEffect(() => {
+    localStorage.setItem('settings', JSON.stringify(settings));
   }, [settings]);
 
-  const updateSettings = (newSettings: Partial<ThemeSettings>) => {
-    setSettings(prev => {
-      const updated = { ...prev, ...newSettings };
-      return updated;
-    });
-  };
-
-  const resetToDefaults = () => {
-    setSettings(defaultSettings);
-  };
+  // Update the effect to manage robots meta tag
+  useEffect(() => {
+    // Handle the robots meta tag for indexing control
+    let robotsMetaTag = document.querySelector('meta[name="robots"]');
+    
+    if (!robotsMetaTag) {
+      robotsMetaTag = document.createElement('meta');
+      robotsMetaTag.setAttribute('name', 'robots');
+      document.head.appendChild(robotsMetaTag);
+    }
+    
+    if (settings.allowIndexing) {
+      robotsMetaTag.setAttribute('content', 'index, follow');
+    } else {
+      robotsMetaTag.setAttribute('content', 'noindex, nofollow');
+    }
+  }, [settings.allowIndexing]);
 
   return (
-    <ThemeContext.Provider value={{ settings, updateSettings, resetToDefaults }}>
+    <ThemeContext.Provider value={{ darkMode, setDarkMode, theme, setTheme, font, setFont, settings, setSettings }}>
       {children}
     </ThemeContext.Provider>
   );
+};
+
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
 };
